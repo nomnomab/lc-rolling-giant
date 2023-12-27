@@ -112,12 +112,14 @@ public class CoilheadPatch : MonoBehaviour {
       
       // var chance = Random.value;
       // Plugin.Log.LogInfo($"[test] {__instance.NetworkObjectId}, {__instance.NetworkObject.OwnerClientId}, {__instance.IsServer}, {__instance.IsOwnedByServer}, {__instance.IsClient}");
-      var rng = new System.Random((int)__instance.NetworkObjectId);
+      var mapSeed = StartOfRound.Instance.randomMapSeed;
+      var id = (int)__instance.NetworkObjectId + mapSeed;
+      var rng = new System.Random(id);
       // var chance = (double)__instance.NetworkObjectId / 32.3f % 1f;
       var chance = rng.NextDouble();
-      Plugin.Log.LogInfo($"Rolling Giant {springManAI} rolled {chance} ({Plugin.ChanceForGiant.Value})");
+      Plugin.Log.LogInfo($"Rolling Giant [{id}] {springManAI} rolled {chance} ({Plugin.ChanceForGiant.Value})");
       if (chance > Plugin.ChanceForGiant.Value) {
-         Plugin.Log.LogInfo($"Rolling Giant {springManAI} failed to spawn ({chance} > {Plugin.ChanceForGiant.Value})");
+         Plugin.Log.LogInfo($"Rolling Giant [{id}] {springManAI} failed to spawn ({chance} > {Plugin.ChanceForGiant.Value})");
          return;
       }
 
@@ -133,7 +135,7 @@ public class CoilheadPatch : MonoBehaviour {
       SpawnRollingGiant(springManAI);
       ChangeSpringNoises(springManAI);
 
-      Plugin.Log.LogInfo($"Summoned Rolling Giant! ({chance} <= {Plugin.ChanceForGiant.Value})");
+      Plugin.Log.LogInfo($"Summoned Rolling Giant [{id}]! ({chance} <= {Plugin.ChanceForGiant.Value})");
    }
 
    private static void SpawnRollingGiant(SpringManAI parent) {

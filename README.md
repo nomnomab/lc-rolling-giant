@@ -49,7 +49,12 @@ Generated after launching the game for the first time.
 
 ## Changelog
 
+## 1.1.1
+
+- Made the Rolling Giant rng utilize the map seed to make results less samey
+
 ## 1.1.0
+
 - Multiple AI types for the Rolling Giant:
   - Coilhead = Coilhead AI
   - MoveWhenLooking = Move when player is looking at it
@@ -61,6 +66,7 @@ Generated after launching the game for the first time.
 - Rolling Giant variant is now synced visually across clients
 
 ## 1.0.0
+
 Initial release
 
 ## Send me a Coffee!
