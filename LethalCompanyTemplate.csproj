@@ -6,6 +6,8 @@
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <LangVersion>latest</LangVersion>
         <RunPostBuildEvent>Always</RunPostBuildEvent>
+        <GameDir>C:\Program Files (x86)\Steam\steamapps\common\Lethal Company\</GameDir>
+        <RootNamespace>RollingGiant</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>
@@ -22,9 +24,6 @@
     <ItemGroup>
       <Reference Include="Assembly-CSharp">
         <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Lethal Company\Lethal Company_Data\Managed\Assembly-CSharp.dll</HintPath>
-      </Reference>
-      <Reference Include="LC_API">
-        <HintPath>thirdparty\LC_API.dll</HintPath>
       </Reference>
       <Reference Include="TerminalApi">
         <HintPath>thirdparty\TerminalApi.dll</HintPath>

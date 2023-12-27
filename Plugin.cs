@@ -1,12 +1,11 @@
 ﻿using System.IO;
 using System.Reflection;
 using BepInEx;
-using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
+using RollingGiant.Settings;
 using UnityEngine;
 using UnityEngine.Video;
-using PluginInfo = LethalCompanyTemplate.PluginInfo;
 
 namespace RollingGiant;
 
@@ -14,33 +13,32 @@ public enum RollingGiantAiType {
     Coilhead,
     MoveWhenLooking,
     RandomlyMoveWhileLooking,
-    LookingTooLongKeepsAgro
+    LookingTooLongKeepsAgro,
+    FollowOnceAgro,
+    OnceSeenAgroAfterTimer
 }
 
 [BepInPlugin("nomnomab.rollinggiant", "Rolling Giant", "1.1.0")]
 public class Plugin : BaseUnityPlugin {
+    public static BaseAiTypeSettings CurrentAiTypeSettings { get; private set; }
+    public static GeneralSettings GeneralSettings { get; private set; }
+    public static AiSettings AiSettings { get; private set; }
+    public static CoilheadAiTypeSettings CoilheadAiSettings { get; private set; }
+    public static InverseCoilheadAiTypeSettings InverseCoilheadAiSettings { get; private set; }
+    public static RandomlyMoveWhileLookingAiTypeSettings RandomlyMoveWhileLookingAiSettings { get; private set; }
+    public static LookingTooLongKeepsAgroAiTypeSettings LookingTooLongKeepsAgroAiSettings { get; private set; }
+    public static FollowOnceAgroAiTypeSettings FollowOnceAgroAiSettings { get; private set; }
+    public static OnceSeenAgroAfterTimerAiTypeSettings OnceSeenAgroAfterTimerAiSettings { get; private set; }
+
     public static string PluginDirectory;
-    // general
-    public static ConfigEntry<float> ChanceForGiant;
-    public static ConfigEntry<float> GiantScale;
-    public static ConfigEntry<bool> RotateToLookAtPlayer;
-    public static ConfigEntry<float> DelayBeforeLookingAtPlayer;
-    public static ConfigEntry<float> LookAtPlayerDuration;
-    // ai
-    public static ConfigEntry<RollingGiantAiType> AiType;
-    public static ConfigEntry<float> AiMoveSpeed;
-    public static ConfigEntry<float> AiWaitTimeMin;
-    public static ConfigEntry<float> AiWaitTimeMax;
-    public static ConfigEntry<float> AiRandomMoveTimeMin;
-    public static ConfigEntry<float> AiRandomMoveTimeMax;
-    
+
     public static AssetBundle Bundle;
     public static GameObject RollingGiantModel;
     public static AudioClip WalkSound;
     public static AudioClip[] QuickWalkSounds;
     public static VideoClip MovieTexture;
-    
-    new internal static ManualLogSource Log;
+
+    internal static ManualLogSource Log;
 
     private void Awake() {
         Log = Logger;
@@ -52,28 +50,32 @@ public class Plugin : BaseUnityPlugin {
     }
 
     private void LoadSettings() {
-        // general
-        ChanceForGiant = Config.Bind("General", "ChanceForGiant", 0.4f, "0.0-1.0: Chance for a Rolling Giant to spawn. Higher means more chances for a Rolling Giant.");
-        GiantScale = Config.Bind("General", "GiantScale", 1f, "The scale of the giant in-game. Only affects the visuals.");
-        RotateToLookAtPlayer = Config.Bind("General", "RotateToLookAtPlayer", true, "If the Rolling Giant should rotate to look at the player.");
-        DelayBeforeLookingAtPlayer = Config.Bind("General", "DelayBeforeLookingAtPlayer", 2f, "The delay before the Rolling Giant looks at the player.");
-        LookAtPlayerDuration = Config.Bind("General", "LookAtPlayerDuration", 3f, "The duration the Rolling Giant looks at the player.");
-        
-        // ai
-        AiType = Config.Bind("AI", "AiType", RollingGiantAiType.RandomlyMoveWhileLooking, "The AI type of the Rolling Giant.\nCoilhead = Coilhead AI\nMoveWhenLooking = Move when player is looking at it\nRandomlyMoveWhileLooking = Randomly move while the player is looking at it\nLookingTooLongKeepsAgro = If the player looks at it for too long it doesn't stop chasing");
-        AiMoveSpeed = Config.Bind("AI", "AiMoveSpeed", 6f, "The speed of the Rolling Giant.");
-        AiWaitTimeMin = Config.Bind("AI", "AiWaitTimeMin", 1f, "The minimum time the Rolling Giant waits before moving again.");
-        AiWaitTimeMax = Config.Bind("AI", "AiWaitTimeMax", 3f, "The maximum time the Rolling Giant waits before moving again.");
-        AiRandomMoveTimeMin = Config.Bind("AI", "AiRandomMoveTimeMin", 1f, "The minimum time the Rolling Giant moves toward the player.");
-        AiRandomMoveTimeMax = Config.Bind("AI", "AiRandomMoveTimeMax", 3f, "The maximum time the Rolling Giant moves toward the player.");
+        GeneralSettings = new GeneralSettings(Config);
+        AiSettings = new AiSettings(Config);
+        CoilheadAiSettings = new CoilheadAiTypeSettings(Config, "AI.Coilhead");
+        InverseCoilheadAiSettings = new InverseCoilheadAiTypeSettings(Config, "AI.InverseCoilhead");
+        RandomlyMoveWhileLookingAiSettings = new RandomlyMoveWhileLookingAiTypeSettings(Config, "AI.RandomlyMoveWhileLooking");
+        LookingTooLongKeepsAgroAiSettings = new LookingTooLongKeepsAgroAiTypeSettings(Config, "AI.LookingTooLongKeepsAgro");
+        FollowOnceAgroAiSettings = new FollowOnceAgroAiTypeSettings(Config, "AI.FollowOnceAgro");
+        OnceSeenAgroAfterTimerAiSettings = new OnceSeenAgroAfterTimerAiTypeSettings(Config, "AI.OnceSeenAgroAfterTimer");
+
+        CurrentAiTypeSettings = AiSettings.AiType.Value switch {
+            RollingGiantAiType.Coilhead                 => CoilheadAiSettings,
+            RollingGiantAiType.MoveWhenLooking          => InverseCoilheadAiSettings,
+            RollingGiantAiType.RandomlyMoveWhileLooking => RandomlyMoveWhileLookingAiSettings,
+            RollingGiantAiType.LookingTooLongKeepsAgro  => LookingTooLongKeepsAgroAiSettings,
+            RollingGiantAiType.FollowOnceAgro           => FollowOnceAgroAiSettings,
+            RollingGiantAiType.OnceSeenAgroAfterTimer   => OnceSeenAgroAfterTimerAiSettings,
+            _                                           => throw new System.NotImplementedException("Unknown AI type")
+        };
     }
 
     private void LoadAssets() {
         try {
-            // Bundle = AssetBundle.LoadFromFile($"{Application.dataPath}/../BepInEx/plugins/rollinggiant");
             var dirName = Path.GetDirectoryName(PluginDirectory);
             Bundle = AssetBundle.LoadFromFile(Path.Combine(dirName, "rollinggiant"));
-        } catch (System.Exception e) {
+        }
+        catch (System.Exception e) {
             Log.LogError($"Failed to load asset bundle! {e}");
         }
 
@@ -85,7 +87,8 @@ public class Plugin : BaseUnityPlugin {
                 QuickWalkSounds[i] = Bundle.LoadAsset<AudioClip>($"Assets/Rolling Giant Moving-{i + 1}.wav");
             }
             MovieTexture = Bundle.LoadAsset<VideoClip>("Assets/rolling_giant.mp4");
-        } catch (System.Exception e) {
+        }
+        catch (System.Exception e) {
             Log.LogError($"Failed to load assets! {e}");
         }
     }

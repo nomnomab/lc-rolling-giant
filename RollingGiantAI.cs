@@ -1,7 +1,7 @@
 ﻿using GameNetcodeStuff;
 using UnityEngine;
 
-namespace LethalCompanyTemplate; 
+namespace RollingGiant; 
 
 public class RollingGiantAI {
     public PlayerControllerB PreviousTarget;

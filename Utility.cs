@@ -2,7 +2,7 @@
 using System.Reflection;
 using System.Reflection.Emit;
 
-namespace LethalCompanyTemplate; 
+namespace RollingGiant; 
 
 public static class Utility {
     public static object InvokeNotOverride(this MethodInfo methodInfo, 
