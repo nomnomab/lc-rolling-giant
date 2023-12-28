@@ -80,13 +80,10 @@ public class Plugin : BaseUnityPlugin {
         Config.SaveOnConfigSet = false;
 
         var save = false;
-        if (!Config.ContainsKey(new ConfigDefinition("General", "RotateToLookAtPlayer"))) {
-            Config.Bind("General", "RotateToLookAtPlayer", true);   
-            save |= Config.Remove(new ConfigDefinition("General", "GiantScale"));
-        }
-        
+        Config.Bind("General", "RotateToLookAtPlayer", true);   
         Config.Bind("General", "DelayBeforeLookingAtPlayer", 1f);
         Config.Bind("General", "LookAtPlayerDuration", 1f);
+        
         Config.Bind("AI", "AiMoveSpeed", 1f);
         Config.Bind("AI", "AiWaitTimeMin", 1f);
         Config.Bind("AI", "AiWaitTimeMax", 1f);
