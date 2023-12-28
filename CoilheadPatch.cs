@@ -611,6 +611,7 @@ public class CoilheadPatch : MonoBehaviour {
       if (!data.isLookWaiting) return;
       
       data.lookTimer -= Time.deltaTime;
+      isStopped = true;
          
       if (!data.isAgro && data.lookTimer <= 0) {
          isStopped = false;
