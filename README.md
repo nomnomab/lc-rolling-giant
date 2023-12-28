@@ -35,6 +35,7 @@ Generated after launching the game for the first time.
 ### AI
 
 - `AiType` - Type of AI the Rolling Giant uses
+
   - Coilhead - Coilhead AI
   - MoveWhenLooking - Move when player is looking at it
   - RandomlyMoveWhileLooking - Randomly move while the player is looking at it
@@ -50,6 +51,7 @@ Generated after launching the game for the first time.
     - `WaitTimeMax` - The minimum duration the Rolling Giant waits before chasing the player
 
 - Shared settings
+
   - `AiMoveSpeed` - Speed of the Rolling Giant's movement
   - `AiStartMoveDuration` - How long it takes the Rolling Giant to get to its movement speed
   - `RotateToLookAtPlayer` - If the Rolling Giant should rotate to face the player if it has been still for some time
@@ -70,6 +72,7 @@ Generated after launching the game for the first time.
 - Added a config option to change how long it takes the Rolling Giant to get to its movement speed
 - Added a config option to change the Rolling Giant's visual scale between two values
 - Added a config option to change the duration the player has to look at the Rolling Giant before agro for the LookingTooLongKeepsAgro AI
+- Audio volume scales based on the Rolling Giant's speed up to a cap of 1.0
 - Added new AI types for the Rolling Giant:
   - FollowOnceAgro = Once provoked, the Rolling Giant will follow the player constantly
   - OnceSeenAgroAfterTimer = Once the player sees the Rolling Giant, it will agro after a timer
@@ -77,6 +80,7 @@ Generated after launching the game for the first time.
 - Fixed movement speed not applying to AI tick loop
 - Overhauled all settings to allow for per-AI type settings
   - AI types are now grouped with the data they need
+  - Previous settings are removed automatically
 
 ## 1.1.1
 

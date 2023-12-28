@@ -223,7 +223,7 @@ public class CoilheadPatch : MonoBehaviour {
       WalkieTalkie.TransmitOneShotAudio(__instance.creatureSFX, randomSound, 0.4f);
       
       var rollingAudioSource = __instance.transform.Find("RollingSFX").GetComponent<AudioSource>();
-      rollingAudioSource.volume = _roamingAudioPercent;
+      UpdateRollingAudio(rollingAudioSource, true, __instance.agent.speed);
    }
    
    [HarmonyPatch(typeof(SpringManAI), "SetAnimationStopClientRpc")]
@@ -234,7 +234,7 @@ public class CoilheadPatch : MonoBehaviour {
       if (__instance.enemyType != _rollingGiantEnemyType) return;
       
       var rollingAudioSource = __instance.transform.Find("RollingSFX").GetComponent<AudioSource>();
-      rollingAudioSource.volume = 0;
+      UpdateRollingAudio(rollingAudioSource, false, __instance.agent.speed);
       // Plugin.Log.LogInfo($"Rolling Giant {__instance} stopped playing long sound");
    }
 
@@ -274,18 +274,19 @@ public class CoilheadPatch : MonoBehaviour {
                       StartOfRound.Instance.collidersAndRoomMaskAndDefault) &&
                    Vector3.Distance(__instance.transform.position, StartOfRound.Instance.allPlayerScripts[i].transform.position) < 30.0) {
                   __instance.SwitchToBehaviourState(1);
+                  UpdateRollingAudio(rollingAudioSource, false, __instance.agent.speed);
                   return false;
                }
             }
    
             var currentAiTypeSettings = Plugin.CurrentAiTypeSettings;
             var rampUpSpeed = Time.deltaTime / currentAiTypeSettings.MoveBuildUpDuration.Value;
-            rollingAudioSource.volume = __instance.searchForPlayers.inProgress ? Mathf.Lerp(rollingAudioSource.volume, _roamingAudioPercent, rampUpSpeed) : 0;
+            UpdateRollingAudio(rollingAudioSource, __instance.searchForPlayers.inProgress, __instance.agent.speed);
             __instance.agent.speed = Mathf.Lerp(__instance.agent.speed, Plugin.CurrentAiTypeSettings.MoveSpeed.Value, rampUpSpeed);
             
             if (__instance.searchForPlayers.inProgress) break;
             __instance.movingTowardsTargetPlayer = false;
-            rollingAudioSource.volume = 0;
+            UpdateRollingAudio(rollingAudioSource, false, __instance.agent.speed);
             __instance.StartSearch(__instance.transform.position, __instance.searchForPlayers);
             break;
    
@@ -365,7 +366,7 @@ public class CoilheadPatch : MonoBehaviour {
                      __instance.agent.speed = currentAiTypeSettings.MoveSpeed.Value;
                   } else {
                      __instance.agent.speed = 0;
-                     rollingAudioSource.volume = 0;
+                     UpdateRollingAudio(rollingAudioSource, false, __instance.agent.speed);
                   }
                }
                
@@ -483,7 +484,7 @@ public class CoilheadPatch : MonoBehaviour {
             var speed = GetCurrentAnimSpeed(__instance);
             __instance.creatureAnimator.SetFloat("walkSpeed", GetCurrentAnimSpeed(__instance));
             if (speed <= 0.1) {
-               rollingAudioSource.volume = 0;
+               UpdateRollingAudio(rollingAudioSource, false, __instance.agent.speed);
             }
             
             if (!__instance.IsOwner) break;
@@ -491,11 +492,22 @@ public class CoilheadPatch : MonoBehaviour {
             // var rampUpDuration = 1f / Plugin.AiWaitTimeMin.Value;
             var rampUpSpeed = Time.deltaTime / currentAiTypeSettings.MoveBuildUpDuration.Value;
             __instance.agent.speed = Mathf.Lerp(__instance.agent.speed, currentAiTypeSettings.MoveSpeed.Value, rampUpSpeed);
-            rollingAudioSource.volume = Mathf.Lerp(rollingAudioSource.volume, _roamingAudioPercent, rampUpSpeed);
+            UpdateRollingAudio(rollingAudioSource, true, __instance.agent.speed);
             break;
       }
 
       return false;
+   }
+
+   private static void UpdateRollingAudio(AudioSource audioSource, bool enabled, float speed) {
+      if (!enabled) {
+         audioSource.volume = 0;
+         return;
+      }
+      
+      var rampUpSpeed = Time.deltaTime / Plugin.CurrentAiTypeSettings.MoveBuildUpDuration.Value;
+      var multiplier = Mathf.Clamp01(speed + 0.1f);
+      audioSource.volume = Mathf.Lerp(audioSource.volume, _roamingAudioPercent * multiplier, rampUpSpeed);
    }
    
    private static void HandleNormalAI(SpringManAI __instance, ref bool isStopped, ref RollingGiantData data, out PlayerControllerB player) {
@@ -590,20 +602,19 @@ public class CoilheadPatch : MonoBehaviour {
       }
       
       var isLookingAt = IsPlayerLooking(__instance, out player);
-      if (isLookingAt) {
+      if (isLookingAt && !data.isLookWaiting) {
          isStopped = true;
+         data.isLookWaiting = true;
+         data.lookTimer = aiSettings.GetRandomWaitTime(RoundManager.Instance.LevelRandom);
+      }
 
-         if (!data.isLookWaiting) {
-            data.isLookWaiting = true;
-            data.lookTimer = aiSettings.GetRandomWaitTime(RoundManager.Instance.LevelRandom);
-         }
+      if (!data.isLookWaiting) return;
+      
+      data.lookTimer -= Time.deltaTime;
          
-         data.lookTimer -= Time.deltaTime;
-         
-         if (!data.isAgro && data.lookTimer <= 0) {
-            isStopped = false;
-            data.isAgro = true;
-         }
+      if (!data.isAgro && data.lookTimer <= 0) {
+         isStopped = false;
+         data.isAgro = true;
       }
    }
 
