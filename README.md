@@ -31,23 +31,24 @@ Generated after launching the game for the first time.
 
 - `ChanceForGiant` = 0.0-1.0 - Chance for a Rolling Giant to spawn. Higher means more chances for a Rolling Giant
 - `GiantScaleMin` - The minimum scale of the Rolling Giant's model
+  - This changes how small the Giant can be
 - `GiantScaleMax` - The maximum scale of the Rolling Giant's model
+  - This changes how big the Giant can be
 
 ### Spawn Conditions
 
 These do not update when reloading the config in-game!
 
 - `SpawnIn` - Levels that the Rolling Giant can spawn in, separated by their chances of spawning
-  -  Lower chance = more rare
+  - Lower chance = more rare
+  - The names are what you see in the terminal
   - `Vow:6,March:10,Rend:43,Dine:53,Offense:25,Titan:59`
-- `SpawnInside` - If the Rolling Giant should spawn inside the dungeon
-  - `Vow,March,Rend,Dine,Offense,Titan`
-- `SpawnDaytime` - If the Rolling Giant should spawn during the day 
-  - `Vow,March`
-- `SpawnOutside` - If the Rolling Giant should spawn outside
-  - `Vow,March`
+- `CanSpawnInside` - If the Rolling Giant should spawn inside the dungeon
+- `CanSpawnOutside` - If the Rolling Giant should spawn outside
+- `DisableOutsideAtNight` - If the Rolling Giant will turn off if it is outside at night.
 - `SpawnPosterIn` - Where the Rolling Giant poster scrap can spawn, separated by their chances of spawning
   - Lower chance = more rare
+  - The names are what you see in the terminal
   - `Vow:12,March:12,Rend:12,Dine:12,Offense:12,Titan:12`
 
 ### AI
