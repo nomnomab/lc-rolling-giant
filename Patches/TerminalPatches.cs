@@ -34,7 +34,7 @@ public static class TerminalPatches {
         
         var newId = __instance.enemyFiles.Count;
         terminalNode.creatureFileID = newId;
-        Plugin.EnemyType.enemyPrefab.GetComponentInChildren<ScanNodeProperties>().creatureScanID = newId;
+        Plugin.EnemyTypeInside.enemyPrefab.GetComponentInChildren<ScanNodeProperties>().creatureScanID = newId;
         __instance.enemyFiles.Add(terminalNode);
     }
 

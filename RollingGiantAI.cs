@@ -16,8 +16,7 @@ public class RollingGiantAI : EnemyAI {
 #pragma warning restore 649
 
    private static SharedAiSettings _sharedAiSettings => CustomConfig.SharedAiSettings;
-
-   private Transform _visuals;
+   
    private AudioSource _rollingSFX;
 
    private float _timeSinceHittingPlayer;
@@ -35,6 +34,15 @@ public class RollingGiantAI : EnemyAI {
    private float _agroTimer;
    private float _springVelocity;
 
+   private static float NextDouble() {
+      if (!RoundManager.Instance || RoundManager.Instance.LevelRandom == null) {
+         Plugin.Log.LogWarning("Missing RoundManager or LevelRandom, in dev level?");
+         return Random.value;
+      }
+      
+      return (float)RoundManager.Instance.LevelRandom.NextDouble();
+   }
+
    public override void Start() {
       base.Start();
       
@@ -42,8 +50,8 @@ public class RollingGiantAI : EnemyAI {
       
       _rollingSFX.loop = true;
       _rollingSFX.clip = Plugin.WalkSound;
-      var time = (float)RoundManager.Instance.LevelRandom.NextDouble() * Plugin.WalkSound.length;
-      var pitch = Mathf.Lerp(0.96f, 1.05f, (float)RoundManager.Instance.LevelRandom.NextDouble());
+      var time = NextDouble() * Plugin.WalkSound.length;
+      var pitch = Mathf.Lerp(0.96f, 1.05f, NextDouble());
       _rollingSFX.time = time;
       _rollingSFX.pitch = pitch;
       _rollingSFX.volume = 0;
@@ -56,7 +64,6 @@ public class RollingGiantAI : EnemyAI {
 
    private void Init() {
       agent = gameObject.GetComponentInChildren<NavMeshAgent>();
-      _visuals = transform.Find("Model");
       _rollingSFX = transform.Find("RollingSFX").GetComponent<AudioSource>();
       
       var mixer = SoundManager.Instance.diageticMixer.outputAudioMixerGroup;
@@ -65,7 +72,23 @@ public class RollingGiantAI : EnemyAI {
       creatureSFX.outputAudioMixerGroup = mixer;
    }
 
+   public override void DaytimeEnemyLeave() {
+      base.DaytimeEnemyLeave();
+      
+      foreach (var renderer in transform.GetComponentsInChildren<Renderer>()) {
+         if (renderer.name == "object_3") continue;
+         renderer.sharedMaterial = Plugin.BlackAndWhiteMaterial;
+      }
+
+      _mainCollider.isTrigger = true;
+   }
+
    public override void DoAIInterval() {
+      if (daytimeEnemyLeaving) {
+         _mainCollider.isTrigger = true;
+         return;
+      }
+      
       base.DoAIInterval();
 
       if (StartOfRound.Instance.livingPlayers == 0 || isEnemyDead) return;
@@ -75,7 +98,7 @@ public class RollingGiantAI : EnemyAI {
          case 0:
             for (int i = 0; i < StartOfRound.Instance.allPlayerScripts.Length; i++) {
                var player = StartOfRound.Instance.allPlayerScripts[i];
-               if (PlayerIsTargetable(player) &&
+               if (PlayerIsTargetable(player, overrideInsideFactoryCheck: isOutside) &&
                    !Physics.Linecast(transform.position + Vector3.up * 0.5f,
                       player.gameplayCamera.transform.position,
                       StartOfRound.Instance.collidersAndRoomMaskAndDefault) && Vector3.Distance(transform.position, player.transform.position) < 30.0) {
@@ -121,6 +144,11 @@ public class RollingGiantAI : EnemyAI {
    }
 
    public override void Update() {
+      if (daytimeEnemyLeaving) {
+         _mainCollider.isTrigger = true;
+         return;
+      }
+      
       base.Update();
 
       if (isEnemyDead) return;
@@ -199,6 +227,8 @@ public class RollingGiantAI : EnemyAI {
                BeginChasingPlayer_ServerRpc((int)targetPlayer.playerClientId);
                ChangeOwnershipOfEnemy(targetPlayer.actualClientId);
                // Plugin.Log.LogInfo($"[Update::{_sharedAiSettings.aiType}] began chasing local player {targetPlayer?.playerUsername}");
+            } else {
+               // Plugin.Log.LogInfo($"[Update::{_sharedAiSettings.aiType}] not in range; SwitchToBehaviourState(0); {targetPlayer}");
             }
          }
             break;
@@ -302,11 +332,38 @@ public class RollingGiantAI : EnemyAI {
       }
    }
 
+   // ? needed to insert the overrideInsideFactoryCheck override
+   public bool TargetClosestPlayer(float bufferDistance = 1.5f, bool requireLineOfSight = false, float viewWidth = 70f) {
+      mostOptimalDistance = 2000f;
+      var targetPlayer = this.targetPlayer;
+      this.targetPlayer = null;
+      for (int index = 0; index < StartOfRound.Instance.connectedPlayersAmount + 1; ++index) {
+         if (PlayerIsTargetable(StartOfRound.Instance.allPlayerScripts[index], overrideInsideFactoryCheck: isOutside) &&
+             !PathIsIntersectedByLineOfSight(StartOfRound.Instance.allPlayerScripts[index].transform.position, avoidLineOfSight: false) && (!requireLineOfSight ||
+                HasLineOfSightToPosition(StartOfRound.Instance.allPlayerScripts[index].gameplayCamera.transform.position, viewWidth, 40))) {
+            tempDist = Vector3.Distance(transform.position, StartOfRound.Instance.allPlayerScripts[index].transform.position);
+            if (tempDist < (double)mostOptimalDistance) {
+               mostOptimalDistance = tempDist;
+               this.targetPlayer = StartOfRound.Instance.allPlayerScripts[index];
+            }
+         }
+      }
+      if (this.targetPlayer != null && bufferDistance > 0.0 &&
+          targetPlayer != null &&
+          Mathf.Abs(mostOptimalDistance - Vector3.Distance(transform.position, targetPlayer.transform.position)) < (double)bufferDistance)
+         this.targetPlayer = targetPlayer;
+      return this.targetPlayer != null;
+   }
+
    private static float SmoothLerp(float a, float b, float t) {
       return a + (t * t) * (b - a);
    }
 
    public override void OnCollideWithPlayer(Collider other) {
+      if (daytimeEnemyLeaving) {
+         return;
+      }
+      
       base.OnCollideWithPlayer(other);
       if (_timeSinceHittingPlayer < 0.6f) {
          return;
@@ -473,7 +530,7 @@ public class RollingGiantAI : EnemyAI {
       closestPlayer = null;
 
       foreach (var player in players) {
-         if (!PlayerIsTargetable(player)) continue;
+         if (!PlayerIsTargetable(player, overrideInsideFactoryCheck: isOutside)) continue;
          // transform.position + Vector3.up * 1.6f
          if (player.HasLineOfSightToPosition(transform.position + Vector3.up * 1.6f, 68f)) {
             var distance = Vector3.Distance(transform.position, player.transform.position);
@@ -536,7 +593,7 @@ public class RollingGiantAI : EnemyAI {
    }
    
    private void GenerateWaitTime_LocalClient() {
-      var waitTime = Mathf.Lerp(_sharedAiSettings.waitTimeMin, _sharedAiSettings.waitTimeMax, (float)RoundManager.Instance.LevelRandom.NextDouble());
+      var waitTime = Mathf.Lerp(_sharedAiSettings.waitTimeMin, _sharedAiSettings.waitTimeMax, NextDouble());
       _waitTimer = waitTime;
       GenerateWaitTime_ServerRpc(waitTime);
       // Plugin.Log.LogInfo($"[GenerateWaitTime_LocalClient::{_sharedAiSettings.aiType}] _waitTimer: {_waitTimer}");
@@ -550,7 +607,7 @@ public class RollingGiantAI : EnemyAI {
    }
    
    private void GenerateMoveTime_LocalClient() {
-      var moveTime = Mathf.Lerp(_sharedAiSettings.randomMoveTimeMin, _sharedAiSettings.randomMoveTimeMax, (float)RoundManager.Instance.LevelRandom.NextDouble());
+      var moveTime = Mathf.Lerp(_sharedAiSettings.randomMoveTimeMin, _sharedAiSettings.randomMoveTimeMax, NextDouble());
       _moveTimer = moveTime;
       GenerateMoveTime_ServerRpc(moveTime);
       // Plugin.Log.LogInfo($"[GenerateMoveTime_LocalClient::{_sharedAiSettings.aiType}] _moveTimer: {_moveTimer}");
@@ -571,7 +628,7 @@ public class RollingGiantAI : EnemyAI {
    
    private void AssignInitData_LocalClient() {
       var config = CustomConfig.Instance;
-      var modelScale = Mathf.Lerp(config.GiantScaleMin, config.GiantScaleMax, (float)RoundManager.Instance.LevelRandom.NextDouble());
+      var modelScale = Mathf.Lerp(config.GiantScaleMin, config.GiantScaleMax, NextDouble());
       agent.transform.localScale = Vector3.one * modelScale;
       AssignInitData_ServerRpc(modelScale);
       // Plugin.Log.LogInfo($"[AssignInitData_LocalClient::{_sharedAiSettings.aiType}] agent.transform.localScale: {agent.transform.localScale}");

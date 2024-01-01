@@ -49,7 +49,7 @@ public class StartOfRoundPatches {
         }
 
         var mixerGroup = referenceAudioSource.outputAudioMixerGroup;
-        fix(Plugin.EnemyType.enemyPrefab);
+        fix(Plugin.EnemyTypeInside.enemyPrefab);
         fix(Plugin.PlayerRagdoll);
         fix(Plugin.PosterItem.spawnPrefab);
 

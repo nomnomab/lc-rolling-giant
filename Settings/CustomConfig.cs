@@ -17,9 +17,9 @@ public class CustomConfig : SyncedInstance<CustomConfig> {
     public static ConfigEntry<string> GotoNextAiTypeKey { get; private set; }
     public static ConfigEntry<string> ReloadConfigKey { get; private set; }
     public static ConfigEntry<string> SpawnInEntry { get; private set; }
-    public static ConfigEntry<string> SpawnInsideEntry { get; private set; }
-    public static ConfigEntry<string> SpawnDaytimeEntry { get; private set; }
-    public static ConfigEntry<string> SpawnOutsideEntry { get; private set; }
+    public static ConfigEntry<bool> CanSpawnInsideEntry { get; private set; }
+    public static ConfigEntry<bool> CanSpawnOutsideEntry { get; private set; }
+    public static ConfigEntry<bool> DisableOutsideAtNightEntry { get; private set; }
     public static ConfigEntry<string> SpawnPosterInEntry { get; private set; }
 
     // general settings
@@ -27,9 +27,9 @@ public class CustomConfig : SyncedInstance<CustomConfig> {
     public float GiantScaleMin { get; private set; }
     public float GiantScaleMax { get; private set; }
     public string SpawnIn { get; private set; }
-    public string SpawnInside { get; private set; }
-    public string SpawnDaytime { get; private set; }
-    public string SpawnOutside { get; private set; }
+    public bool CanSpawnInside { get; private set; }
+    public bool CanSpawnOutside { get; private set; }
+    public bool DisableOutsideAtNight { get; private set; }
     public string SpawnPosterIn { get; private set; }
 
     // ai settings
@@ -130,9 +130,9 @@ public class CustomConfig : SyncedInstance<CustomConfig> {
         GiantScaleMinEntry.Value = GiantScaleMin;
         GiantScaleMaxEntry.Value = GiantScaleMax;
         SpawnInEntry.Value = SpawnIn;
-        SpawnInsideEntry.Value = SpawnInside;
-        SpawnOutsideEntry.Value = SpawnOutside;
-        SpawnDaytimeEntry.Value = SpawnDaytime;
+        CanSpawnInsideEntry.Value = CanSpawnInside;
+        CanSpawnOutsideEntry.Value = CanSpawnOutside;
+        DisableOutsideAtNightEntry.Value = DisableOutsideAtNight;
         SpawnPosterInEntry.Value = SpawnPosterIn;
 
         AiTypeEntry.Value = AiType;
@@ -168,29 +168,29 @@ public class CustomConfig : SyncedInstance<CustomConfig> {
     public void Reload(bool setValues = true) {
         // general settings
         // ChanceForGiantEntry =_config.Bind(Name1, nameof(ChanceForGiant), 0.4f, "0.0-1.0: Chance for a Rolling Giant to spawn. Higher means more chances for a Rolling Giant.");
-        GiantScaleMinEntry = _config.Bind(Name1, nameof(GiantScaleMin), 0.9f, "The minimum scale of the Rolling Giant.");
-        GiantScaleMaxEntry = _config.Bind(Name1, nameof(GiantScaleMax), 1.1f, "The maximum scale of the Rolling Giant.");
+        GiantScaleMinEntry = _config.Bind(Name1, nameof(GiantScaleMin), 0.9f, "The minimum scale of the Rolling Giant. This changes how small the Giant can be.");
+        GiantScaleMaxEntry = _config.Bind(Name1, nameof(GiantScaleMax), 1.1f, "The maximum scale of the Rolling Giant. This changes how big the Giant can be.");
 
         SpawnInEntry = _config.Bind(Name1,
             nameof(SpawnIn),
             "Vow:6,March:10,Rend:43,Dine:53,Offense:25,Titan:59",
-            "Where the Rolling Giant can spawn.\nSeparate each level with a comma, and put a chance (between 0 and 100) separated by a colon.\nLower chance = more rare\nExample: Vow:6,March:10");
-        SpawnInsideEntry = _config.Bind(Name1,
-            nameof(SpawnInside),
-            "Vow,March,Rend,Dine,Offense,Titan",
-            "If the Rolling Giant should spawn inside.\nSeparate each level with a comma.\nExample: Vow,March");
-        SpawnDaytimeEntry = _config.Bind(Name1,
-            nameof(SpawnDaytime),
-            "",
-            "If the Rolling Giant should spawn during the day.\nSeparate each level with a comma.\nExample: Vow,March");
-        SpawnOutsideEntry = _config.Bind(Name1,
-            nameof(SpawnOutside),
-            "",
-            "If the Rolling Giant should spawn outside.\nSeparate each level with a comma.\nExample: Vow,March");
+            "Where the Rolling Giant can spawn.\nSeparate each level with a comma, and put a chance (between 0 and 100) separated by a colon.\nLower chance = more rare\nThe names are what you see in the terminal\nExample: Vow:6,March:10");
+        CanSpawnInsideEntry = _config.Bind(Name1,
+            nameof(CanSpawnInside),
+            true,
+            "If the Rolling Giant can spawn inside.");
+        CanSpawnOutsideEntry = _config.Bind(Name1,
+            nameof(CanSpawnOutside),
+            false,
+            "If the Rolling Giant can spawn outside.");
+        DisableOutsideAtNightEntry = _config.Bind(Name1,
+            nameof(DisableOutsideAtNight),
+            false,
+            "If the Rolling Giant will turn off if it is outside at night.");
         SpawnPosterInEntry = _config.Bind(Name1,
             nameof(SpawnPosterIn),
             "Vow:12,March:12,Rend:12,Dine:12,Offense:12,Titan:12",
-            "Where the Rolling Giant poster scrap can spawn.\nSeparate each level with a comma, and put a chance (between 0 and 100) separated by a colon.\nLower chance = more rare\nExample: Vow:12,March:12,Rend:12,Dine:12,Offense:12,Titan:12");
+            "Where the Rolling Giant poster scrap can spawn.\nSeparate each level with a comma, and put a chance (between 0 and 100) separated by a colon.\nLower chance = more rare\nThe names are what you see in the terminal\nExample: Vow:12,March:12,Rend:12,Dine:12,Offense:12,Titan:12");
 
         GotoPreviousAiTypeKey ??= _config.Bind("Host",
             nameof(GotoPreviousAiTypeKey),
@@ -286,9 +286,9 @@ public class CustomConfig : SyncedInstance<CustomConfig> {
             GiantScaleMin = GiantScaleMinEntry.Value;
             GiantScaleMax = GiantScaleMaxEntry.Value;
             SpawnIn = SpawnInEntry.Value;
-            SpawnInside = SpawnInsideEntry.Value;
-            SpawnDaytime = SpawnDaytimeEntry.Value;
-            SpawnOutside = SpawnOutsideEntry.Value;
+            CanSpawnInside = CanSpawnInsideEntry.Value;
+            CanSpawnOutside = CanSpawnOutsideEntry.Value;
+            DisableOutsideAtNight = DisableOutsideAtNightEntry.Value;
             SpawnPosterIn = SpawnPosterInEntry.Value;
 
             AiType = AiTypeEntry.Value;

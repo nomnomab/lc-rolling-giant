@@ -112,7 +112,7 @@ public class NetworkHandler : NetworkBehaviour {
             var isInside = localPlayer.isInsideFactory;
             
             foreach (var enemy in currentLevel.Enemies) {
-                if (enemy.enemyType != Plugin.EnemyType) continue;
+                if (enemy.enemyType != Plugin.EnemyTypeInside) continue;
                 // if (enemy.enemyType.name != "SpringMan") continue;
                 if (isInside) {
                     var closestVent = currentRound.allEnemyVents.OrderBy(x => Vector3.Distance(x.floorNode.position, localPlayer.transform.position)).FirstOrDefault();

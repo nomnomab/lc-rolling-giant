@@ -30,22 +30,25 @@ public enum RollingGiantAiType {
 public class Plugin : BaseUnityPlugin {
     public const string PluginGuid = "nomnomab.rollinggiant";
     public const string PluginName = "Rolling Giant";
-    public const string PluginVersion = "2.0.1";
+    public const string PluginVersion = "2.1.0";
     
-    private const int SaveFileVersion = 1;
+    private const int SaveFileVersion = 2;
 
     public static string PluginDirectory;
     public static CustomConfig CustomConfig { get; private set; }
     public static ConfigFile Config { get; private set; }
 
     public static AssetBundle Bundle;
-    public static EnemyType EnemyType;
+    public static EnemyType EnemyTypeInside;
+    public static EnemyType EnemyTypeOutside;
+    public static EnemyType EnemyTypeOutsideDaytime;
     public static TerminalNode EnemyTerminalNode;
     public static TerminalKeyword EnemyTerminalKeyword;
     public static AudioClip WalkSound;
     public static AudioClip[] StopSounds;
     public static GameObject PlayerRagdoll;
     public static Item PosterItem;
+    public static Material BlackAndWhiteMaterial;
 
     internal static ManualLogSource Log;
 
@@ -123,8 +126,12 @@ public class Plugin : BaseUnityPlugin {
             }
             Bundle = AssetBundle.LoadFromFile(Path.Combine(dirName, "rollinggiant"));
 
-            EnemyType = Bundle.LoadAsset<EnemyType>("Assets/RollingGiant/Data/RollingGiant_EnemyType.asset");
-            NetworkPatches.RegisterPrefab(EnemyType.enemyPrefab);
+            EnemyTypeInside = Bundle.LoadAsset<EnemyType>("Assets/RollingGiant/Data/RollingGiant_EnemyType.asset");
+            EnemyTypeOutside = Bundle.LoadAsset<EnemyType>("Assets/RollingGiant/Data/RollingGiant_EnemyType_Outside.asset");
+            EnemyTypeOutsideDaytime = Bundle.LoadAsset<EnemyType>("Assets/RollingGiant/Data/RollingGiant_EnemyType_Outside_Daytime.asset");
+            NetworkPatches.RegisterPrefab(EnemyTypeInside.enemyPrefab);
+            NetworkPatches.RegisterPrefab(EnemyTypeOutside.enemyPrefab);
+            NetworkPatches.RegisterPrefab(EnemyTypeOutsideDaytime.enemyPrefab);
 
             EnemyTerminalNode = Bundle.LoadAsset<TerminalNode>("Assets/RollingGiant/Data/RollingGiant_TerminalNode.asset");
             EnemyTerminalKeyword = Bundle.LoadAsset<TerminalKeyword>("Assets/RollingGiant/Data/RollingGiant_TerminalKeyword.asset");
@@ -148,6 +155,8 @@ public class Plugin : BaseUnityPlugin {
             Destroy(PosterItem.spawnPrefab.GetComponent<PhysicsProp>());
             PosterItem.spawnPrefab.AddComponent<Poster>().Init();
             NetworkPatches.RegisterPrefab(PosterItem.spawnPrefab);
+            
+            BlackAndWhiteMaterial = Bundle.LoadAsset<Material>("Assets/RollingGiant/Materials/RollingGiant_Gray.mat");
         }
         catch (System.Exception e) {
             Log.LogError($"Failed to load assets! {e}");

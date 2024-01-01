@@ -89,9 +89,19 @@ These do not update when reloading the config in-game!
 
 ## Changelog
 
+## 2.1.0
+
+- Renamed `SpawnInside` to `CanSpawnInside`, and is now just a toggle
+- Renamed `SpawnOutside` to `CanSpawnOutside`, and is now just a toggle
+- Renamed `SpawnDaytime` to `DisableOutsideAtNight` as it was too confusing for many people, and is now just a toggle
+- Added extra notes to various config options to make them more clear
+- Added the Rolling Giant to the in-game dev enemy spawn list
+- Fixed the Rolling Giant's outside AI
+- Gave the Rolling Giant, when it is a daytime type, a disabled state
+
 ## 2.0.1
 
-- Removes logs from ai modes that spammed the console :(
+- Removed logs from ai modes that spammed the console :(
 
 ## 2.0.0
 
