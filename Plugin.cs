@@ -4,132 +4,175 @@ using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
+using RollingGiant.Patches;
 using RollingGiant.Settings;
 using UnityEngine;
-using UnityEngine.Video;
+
+#if DEBUG
+using System.Diagnostics;
+using MonoMod.Cil;
+using MonoMod.RuntimeDetour;
+#endif
 
 namespace RollingGiant;
 
 public enum RollingGiantAiType {
     Coilhead,
-    MoveWhenLooking,
+    InverseCoilhead,
     RandomlyMoveWhileLooking,
     LookingTooLongKeepsAgro,
     FollowOnceAgro,
     OnceSeenAgroAfterTimer
 }
 
-[BepInPlugin("nomnomab.rollinggiant", "Rolling Giant", "1.2.0")]
+[BepInPlugin(PluginGuid, PluginName, PluginVersion)]
+// [BepInDependency("com.willis.lc.lethalsettings", BepInDependency.DependencyFlags.SoftDependency)]
 public class Plugin : BaseUnityPlugin {
-    public static BaseAiTypeSettings CurrentAiTypeSettings { get; private set; }
-    public static GeneralSettings GeneralSettings { get; private set; }
-    public static AiSettings AiSettings { get; private set; }
-    public static CoilheadAiTypeSettings CoilheadAiSettings { get; private set; }
-    public static InverseCoilheadAiTypeSettings InverseCoilheadAiSettings { get; private set; }
-    public static RandomlyMoveWhileLookingAiTypeSettings RandomlyMoveWhileLookingAiSettings { get; private set; }
-    public static LookingTooLongKeepsAgroAiTypeSettings LookingTooLongKeepsAgroAiSettings { get; private set; }
-    public static FollowOnceAgroAiTypeSettings FollowOnceAgroAiSettings { get; private set; }
-    public static OnceSeenAgroAfterTimerAiTypeSettings OnceSeenAgroAfterTimerAiSettings { get; private set; }
+    public const string PluginGuid = "nomnomab.rollinggiant";
+    public const string PluginName = "Rolling Giant";
+    public const string PluginVersion = "2.0.0";
+    
+    private const int SaveFileVersion = 1;
 
     public static string PluginDirectory;
+    public static CustomConfig CustomConfig { get; private set; }
+    public static ConfigFile Config { get; private set; }
 
     public static AssetBundle Bundle;
-    public static GameObject RollingGiantModel;
+    public static EnemyType EnemyType;
+    public static TerminalNode EnemyTerminalNode;
+    public static TerminalKeyword EnemyTerminalKeyword;
     public static AudioClip WalkSound;
-    public static AudioClip[] QuickWalkSounds;
-    public static VideoClip MovieTexture;
+    public static AudioClip[] StopSounds;
+    public static GameObject PlayerRagdoll;
+    public static Item PosterItem;
 
     internal static ManualLogSource Log;
 
     private void Awake() {
+        Config = base.Config;
         Log = Logger;
         PluginDirectory = Info.Location;
         LoadSettings();
+        RemoveOldSettings();
+        // LethalSettingsAccessor.GenerateUi();
+#if DEBUG
+        new ILHook(typeof(StackTrace).GetMethod("AddFrames", BindingFlags.Instance | BindingFlags.NonPublic), IlHook);
+#endif
         LoadAssets();
+        LoadNetWeaver();
+        
         Harmony.CreateAndPatchAll(Assembly.GetExecutingAssembly());
         Logger.LogInfo($"Plugin {PluginInfo.PLUGIN_GUID} is loaded!");
     }
 
-    private void LoadSettings() {
-        Log.LogMessage(string.Join("\n", Config.Keys));
-        
-        GeneralSettings = new GeneralSettings(Config);
-        AiSettings = new AiSettings(Config);
-        CoilheadAiSettings = new CoilheadAiTypeSettings(Config, "AI.Coilhead");
-        InverseCoilheadAiSettings = new InverseCoilheadAiTypeSettings(Config, "AI.InverseCoilhead");
-        RandomlyMoveWhileLookingAiSettings = new RandomlyMoveWhileLookingAiTypeSettings(Config, "AI.RandomlyMoveWhileLooking");
-        LookingTooLongKeepsAgroAiSettings = new LookingTooLongKeepsAgroAiTypeSettings(Config, "AI.LookingTooLongKeepsAgro");
-        FollowOnceAgroAiSettings = new FollowOnceAgroAiTypeSettings(Config, "AI.FollowOnceAgro");
-        OnceSeenAgroAfterTimerAiSettings = new OnceSeenAgroAfterTimerAiTypeSettings(Config, "AI.OnceSeenAgroAfterTimer");
-        
-        RemoveOldSettings();
+    private void LoadNetWeaver() {
+        var types = Assembly.GetExecutingAssembly().GetTypes();
+        foreach (var type in types) {
+            // ? prevents the compatibility layer from crashing the plugin loading
+            try {
+                var methods = type.GetMethods(BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
+                foreach (var method in methods) {
+                    var attributes = method.GetCustomAttributes(typeof(RuntimeInitializeOnLoadMethodAttribute), false);
+                    if (attributes.Length > 0) {
+                        method.Invoke(null, null);
+                    }
+                }
+            } catch {
+                Log.LogWarning($"NetWeaver is skipping {type.FullName}");
+            }
+        }
+    }
 
-        CurrentAiTypeSettings = AiSettings.AiType.Value switch {
-            RollingGiantAiType.Coilhead                 => CoilheadAiSettings,
-            RollingGiantAiType.MoveWhenLooking          => InverseCoilheadAiSettings,
-            RollingGiantAiType.RandomlyMoveWhileLooking => RandomlyMoveWhileLookingAiSettings,
-            RollingGiantAiType.LookingTooLongKeepsAgro  => LookingTooLongKeepsAgroAiSettings,
-            RollingGiantAiType.FollowOnceAgro           => FollowOnceAgroAiSettings,
-            RollingGiantAiType.OnceSeenAgroAfterTimer   => OnceSeenAgroAfterTimerAiSettings,
-            _                                           => throw new System.NotImplementedException("Unknown AI type")
-        };
+    private void LoadSettings() {
+        CustomConfig = new CustomConfig(base.Config);
     }
 
     private void RemoveOldSettings() {
-        var previousSetting = Config.SaveOnConfigSet;
-        Config.SaveOnConfigSet = false;
+        var version = base.Config.Bind("z_Ignore", "__version", 0, "The version of this config file. Do not change this.").Value;
+        if (version != SaveFileVersion) {
+            Log.LogMessage($"Removing old settings... ({version} != {SaveFileVersion})");
 
-        var save = false;
-        Config.Bind("General", "RotateToLookAtPlayer", true);   
-        Config.Bind("General", "DelayBeforeLookingAtPlayer", 1f);
-        Config.Bind("General", "LookAtPlayerDuration", 1f);
-        
-        Config.Bind("AI", "AiMoveSpeed", 1f);
-        Config.Bind("AI", "AiWaitTimeMin", 1f);
-        Config.Bind("AI", "AiWaitTimeMax", 1f);
-        Config.Bind("AI", "AiRandomMoveTimeMin", 1f);
-        Config.Bind("AI", "AiRandomMoveTimeMax", 1f);
-        
-        save |= Config.Remove(new ConfigDefinition("General", "RotateToLookAtPlayer"));
-        save |= Config.Remove(new ConfigDefinition("General", "DelayBeforeLookingAtPlayer"));
-        save |= Config.Remove(new ConfigDefinition("General", "LookAtPlayerDuration"));
-        
-        save |= Config.Remove(new ConfigDefinition("AI", "AiMoveSpeed"));
-        save |= Config.Remove(new ConfigDefinition("AI", "AiWaitTimeMin"));
-        save |= Config.Remove(new ConfigDefinition("AI", "AiWaitTimeMax"));
-        save |= Config.Remove(new ConfigDefinition("AI", "AiRandomMoveTimeMin"));
-        save |= Config.Remove(new ConfigDefinition("AI", "AiRandomMoveTimeMax"));
-        
-        if (save) {
-            Log.LogWarning("Removed old settings");
-            Config.Save();
+            // back up config file and nuke the old one
+            var configFile = base.Config.ConfigFilePath;
+            var backupFile = configFile + ".bak";
+            File.Copy(configFile, backupFile, true);
+            File.WriteAllText(configFile, "");
+
+            // reload from disk the empty file
+            base.Config.Reload();
+
+            // reload the bindings, but don't get the values from them
+            CustomConfig.Reload(setValues: false);
+
+            base.Config.Bind("z_Ignore", "__version", SaveFileVersion).Value = SaveFileVersion;
+
+            // copy the values from the backup into the new config bindings
+            CustomConfig.AssignFromSaved();
+            base.Config.Save();
+        } else {
+            Log.LogMessage($"Settings version is up to date ({version} == {SaveFileVersion})");
         }
-        
-        Config.SaveOnConfigSet = previousSetting;
     }
 
     private void LoadAssets() {
         try {
             var dirName = Path.GetDirectoryName(PluginDirectory);
+            if (dirName == null) {
+                throw new System.Exception("Failed to get directory name!");
+            }
             Bundle = AssetBundle.LoadFromFile(Path.Combine(dirName, "rollinggiant"));
+
+            EnemyType = Bundle.LoadAsset<EnemyType>("Assets/RollingGiant/Data/RollingGiant_EnemyType.asset");
+            NetworkPatches.RegisterPrefab(EnemyType.enemyPrefab);
+
+            EnemyTerminalNode = Bundle.LoadAsset<TerminalNode>("Assets/RollingGiant/Data/RollingGiant_TerminalNode.asset");
+            EnemyTerminalKeyword = Bundle.LoadAsset<TerminalKeyword>("Assets/RollingGiant/Data/RollingGiant_TerminalKeyword.asset");
         }
         catch (System.Exception e) {
             Log.LogError($"Failed to load asset bundle! {e}");
         }
 
         try {
-            RollingGiantModel = Bundle.LoadAsset<GameObject>("Assets/Rolling Giant.prefab");
-            WalkSound = Bundle.LoadAsset<AudioClip>("Assets/mrtheoldestview.wav");
-            QuickWalkSounds = new AudioClip[5];
-            for (int i = 1; i < 5; i++) {
-                QuickWalkSounds[i] = Bundle.LoadAsset<AudioClip>($"Assets/Rolling Giant Moving-{i + 1}.wav");
+            WalkSound = Bundle.LoadAsset<AudioClip>("Assets/RollingGiant/Audio/MovingLoop.wav");
+            StopSounds = new AudioClip[5];
+            for (int i = 0; i < 5; i++) {
+                StopSounds[i] = Bundle.LoadAsset<AudioClip>($"Assets/RollingGiant/Audio/Stopped{i + 1}.wav");
             }
-            MovieTexture = Bundle.LoadAsset<VideoClip>("Assets/rolling_giant.mp4");
+            PlayerRagdoll = Bundle.LoadAsset<GameObject>("Assets/RollingGiant/PlayerRagdollRollingGiant Variant.prefab");
+            PlayerRagdoll.AddComponent<RollingGiantDeadBody>();
+            
+            PosterItem = Bundle.LoadAsset<Item>("Assets/RollingGiant/Data/RollingGiant_PosterItem.asset");
+            PosterItem.rotationOffset += new Vector3(45, 0, 0);
+            PosterItem.positionOffset += new Vector3(-0.1f, -0.12f, 0.15f);
+            Destroy(PosterItem.spawnPrefab.GetComponent<PhysicsProp>());
+            PosterItem.spawnPrefab.AddComponent<Poster>().Init();
+            NetworkPatches.RegisterPrefab(PosterItem.spawnPrefab);
         }
         catch (System.Exception e) {
             Log.LogError($"Failed to load assets! {e}");
         }
     }
+
+#if DEBUG
+    private void IlHook(ILContext il) {
+        var cursor = new ILCursor(il);
+        cursor.GotoNext(
+            x => x.MatchCallvirt(typeof(StackFrame).GetMethod("GetFileLineNumber", BindingFlags.Instance | BindingFlags.Public))
+        );
+        cursor.RemoveRange(2);
+        cursor.EmitDelegate(GetLineOrIL);
+    }
+
+    private static string GetLineOrIL(StackFrame instance) {
+        var line = instance.GetFileLineNumber();
+        if (line == StackFrame.OFFSET_UNKNOWN || line == 0) {
+            return "IL_" + instance.GetILOffset().ToString("X4");
+        }
+
+        return line.ToString();
+    }
+#endif
 }
 
 #if DEBUG

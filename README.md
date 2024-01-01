@@ -2,21 +2,22 @@
 
 > Made by Andrew Burke
 
-Adds the Rolling Giant as a Coilhead variant into Lethal Company. Sounds are included.
+Adds the Rolling Giant as a new enemy type into Lethal Company. Sounds are included.
 
 Features:
 
-- Adds a new Coilhead variant into the game with a configurable chance of spawning
-- Coilheads and Rolling Giants can co-exist
+- Adds the Rolling Giant as a new enemy
+- Adds a custom scrap poster for the Rolling Giant
 - Rolling Giants can be scanned to read their own unique bestiary entry
-- Rolling Giants have their own scan id so it doesn't conflict with the existing Coilheads
 - Multiple AI behaviours to choose from
-- Can change the scale of the Rolling Giant's model
-- Can change the Rolling Giant's movement speed and wait/move random durations
+- Can change the scale of the Rolling Giant between two values
+- Can change the Rolling Giant's movement speed, wait durations, move durations, and more
 - Rolling Giants have the option to rotate to face the player if they have been still for some time
+- Can change the AI type of all Rolling Giants on the fly:
+  - A hot key to reload the entire config file
+  - Hotkeys to cycle between AI types
 
-![There should be the picture... Something went wrong.](./Images/image0.png)
-![There should be the picture... Something went wrong.](./Images/image1.png)
+![There should be the picture... Something went wrong.](./Images/promo.png)
 
 ## Installation
 
@@ -32,37 +33,85 @@ Generated after launching the game for the first time.
 - `GiantScaleMin` - The minimum scale of the Rolling Giant's model
 - `GiantScaleMax` - The maximum scale of the Rolling Giant's model
 
+### Spawn Conditions
+
+These do not update when reloading the config in-game!
+
+- `SpawnIn` - Levels that the Rolling Giant can spawn in, separated by their chances of spawning
+  -  Lower chance = more rare
+  - `Vow:6,March:10,Rend:43,Dine:53,Offense:25,Titan:59`
+- `SpawnInside` - If the Rolling Giant should spawn inside the dungeon
+  - `Vow,March,Rend,Dine,Offense,Titan`
+- `SpawnDaytime` - If the Rolling Giant should spawn during the day 
+  - `Vow,March`
+- `SpawnOutside` - If the Rolling Giant should spawn outside
+  - `Vow,March`
+- `SpawnPosterIn` - Where the Rolling Giant poster scrap can spawn, separated by their chances of spawning
+  - Lower chance = more rare
+  - `Vow:12,March:12,Rend:12,Dine:12,Offense:12,Titan:12`
+
 ### AI
 
 - `AiType` - Type of AI the Rolling Giant uses
-
-  - Coilhead - Coilhead AI
-  - MoveWhenLooking - Move when player is looking at it
+  - Coilhead - Move when the player is not looking at it
+  - MoveWhenLooking - Move when the player is looking at it
   - RandomlyMoveWhileLooking - Randomly move while the player is looking at it
-    - `WaitTimeMin` - The minimum duration the Rolling Giant waits before moving again
-    - `WaitTimeMax` - The maximum duration the Rolling Giant waits before moving again
-    - `RandomMoveTimeMin` - The minimum duration the Rolling Giant moves toward the player
-    - `RandomMoveTimeMax` - The maximum duration the Rolling Giant moves toward the player
+    - `WaitTimeMin` - The minimum duration in seconds that the Rolling Giant waits before moving again
+    - `WaitTimeMax` - The maximum duration in seconds that the Rolling Giant waits before moving again
+    - `RandomMoveTimeMin` - The minimum duration in seconds that the Rolling Giant moves toward the player
+    - `RandomMoveTimeMax` - The maximum duration in seconds that the Rolling Giant moves toward the player
   - LookingTooLongKeepsAgro - If the player looks at it for too long it doesn't stop chasing
     - `LookTimeBeforeAgro` - How long the player can look at the Rolling Giant before it starts chasing.
-  - FollowOnceAgro - Once provoked, the Rolling Giant will follow the player constantly
+  - FollowOnceAgro - Once the player is noticed, the Rolling Giant will follow the player constantly
   - OnceSeenAgroAfterTimer - Once the player sees the Rolling Giant, it will agro after a timer
-    - `WaitTimeMin` - The minimum duration the Rolling Giant waits before chasing the player
-    - `WaitTimeMax` - The minimum duration the Rolling Giant waits before chasing the player
+    - `WaitTimeMin` - The minimum duration in seconds that the Rolling Giant waits before chasing the player
+    - `WaitTimeMax` - The minimum duration in seconds that the Rolling Giant waits before chasing the player
+- `MoveSpeed` - Speed of the Rolling Giant's movement in m/s²
+- `MoveAcceleration` - How long it takes the Rolling Giant to get to its movement speed in seconds
+- `MoveDeceleration` - How long it takes the Rolling Giant to stop moving in seconds
+- `RotateToLookAtPlayer` - If the Rolling Giant should rotate to face the player if it has been still for some time
+- `DelayBeforeLookingAtPlayer` - The delay before the Rolling Giant looks at the player
+- `LookAtPlayerDuration` - The duration the Rolling Giant takes to look at the player
 
-- Shared settings
+### Host
 
-  - `AiMoveSpeed` - Speed of the Rolling Giant's movement
-  - `AiStartMoveDuration` - How long it takes the Rolling Giant to get to its movement speed
-  - `RotateToLookAtPlayer` - If the Rolling Giant should rotate to face the player if it has been still for some time
-  - `DelayBeforeLookingAtPlayer` - The delay before the Rolling Giant looks at the player
-  - `LookAtPlayerDuration` - The duration the Rolling Giant takes to look at the player
+These do not update when reloading the config in-game!
 
-- Wandering settings
-  - `CanWander` - If the Rolling Giant goes back to wandering after the player gets far enough away from it
-  - `ChaseMaxDistance` - The distance between the Rolling Giant and the player before it stops chasing and goes back to wandering
+- `GotoPreviousAiTypeKey` - The key to go to the previous AI type
+  - This uses Unity's New Input System's key-bind names
+  - Defaults to `Keypad 7`
+- `GotoNextAiTypeKey` - The key to go to the next AI type
+  - This uses Unity's New Input System's key-bind names
+  - Defaults to `Keypad 8`
+- `ReloadConfigKey` - The key to reload the config. Does not update spawn conditions
+  - This uses Unity's New Input System's key-bind names
+  - Defaults to `Keypad 9`
 
 ## Changelog
+
+## 2.0.0
+
+- Removed Terminal API dependency
+- Converted the Rolling Giant into a completely custom enemy that can be added to the spawn pools 
+- Overhauled all AI behaviors
+- Fixed many audio and networking sync issues
+- All AI types will wander by default if all players get out of range
+- Added a new player death type for when the Rolling Giant kills the player
+- Removed wander settings
+- Added config options:
+  - `GotoPreviousAiTypeKey` - The key to go to the previous AI type.
+    - This uses Unity's New Input System's key-bind names
+  - `GotoNextAiTypeKey` - The key to go to the next AI type.
+    - This uses Unity's New Input System's key-bind names
+  - `ReloadConfigKey` - The key to reload the config. Does not update spawn conditions.
+    - This uses Unity's New Input System's key-bind names
+  - `SpawnInAllLevels` - If the Rolling Giant should spawn in all levels
+  - `SpawnInLevelsWithCoilHead` - If the Rolling Giant should only spawn in levels that Coilheads normally spawn in
+  - `SpawnInside` - If the Rolling Giant should spawn inside the dungeon
+  - `SpawnDaytime` - If the Rolling Giant should spawn during the day
+  - `SpawnOutside` - If the Rolling Giant should spawn outside
+  - `MoveDeceleration` - How long it takes the Rolling Giant to stop moving in seconds
+  - `SpawnPosterIn` - Where the Rolling Giant poster scrap can spawn, separated by their chances of spawning
 
 ## 1.2.0
 
@@ -100,8 +149,12 @@ Generated after launching the game for the first time.
 
 ## 1.0.0
 
-Initial release
+- Initial release
 
-## Send me a Coffee!
+## Acknowledgments
+
+- `Ayyobee` for a bunch of online testing and suggestions.
+
+<br/>
 
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/B0B6R2Z9U)
