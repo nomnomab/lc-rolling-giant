@@ -80,7 +80,7 @@ public class RollingGiantAI : EnemyAI {
                       player.gameplayCamera.transform.position,
                       StartOfRound.Instance.collidersAndRoomMaskAndDefault) && Vector3.Distance(transform.position, player.transform.position) < 30.0) {
                   SwitchToBehaviourState(1);
-                  Plugin.Log.LogInfo($"[DoAIInterval::{_sharedAiSettings.aiType}] SwitchToBehaviourState(1)");
+                  // Plugin.Log.LogInfo($"[DoAIInterval::{_sharedAiSettings.aiType}] SwitchToBehaviourState(1)");
                   return;
                }
             }
@@ -91,7 +91,7 @@ public class RollingGiantAI : EnemyAI {
 
             // start a search to find a player...
             StartSearch(transform.position, _searchForPlayers);
-            Plugin.Log.LogInfo($"[DoAIInterval::{_sharedAiSettings.aiType}] StartSearch({transform.position}, _searchForPlayers)");
+            // Plugin.Log.LogInfo($"[DoAIInterval::{_sharedAiSettings.aiType}] StartSearch({transform.position}, _searchForPlayers)");
             break;
          // chasing
          case 1:
@@ -104,7 +104,7 @@ public class RollingGiantAI : EnemyAI {
                }
                // _searchForPlayers.searchWidth = 30f;
                StartSearch(transform.position, _searchForPlayers);
-               Plugin.Log.LogInfo($"[DoAIInterval::{_sharedAiSettings.aiType}] lost player; StartSearch({transform.position}, _searchForPlayers)");
+               // Plugin.Log.LogInfo($"[DoAIInterval::{_sharedAiSettings.aiType}] lost player; StartSearch({transform.position}, _searchForPlayers)");
                break;
             }
 
@@ -115,7 +115,7 @@ public class RollingGiantAI : EnemyAI {
             // stop the current search as we found a player!
             StopSearch(_searchForPlayers);
             movingTowardsTargetPlayer = true;
-            Plugin.Log.LogInfo($"[DoAIInterval::{_sharedAiSettings.aiType}] StopSearch(_searchForPlayers)");
+            // Plugin.Log.LogInfo($"[DoAIInterval::{_sharedAiSettings.aiType}] StopSearch(_searchForPlayers)");
             break;
       }
    }
@@ -198,7 +198,7 @@ public class RollingGiantAI : EnemyAI {
                _wantsToChaseThisClient = true;
                BeginChasingPlayer_ServerRpc((int)targetPlayer.playerClientId);
                ChangeOwnershipOfEnemy(targetPlayer.actualClientId);
-               Plugin.Log.LogInfo($"[Update::{_sharedAiSettings.aiType}] began chasing local player {targetPlayer?.playerUsername}");
+               // Plugin.Log.LogInfo($"[Update::{_sharedAiSettings.aiType}] began chasing local player {targetPlayer?.playerUsername}");
             }
          }
             break;
@@ -230,7 +230,7 @@ public class RollingGiantAI : EnemyAI {
             if (!TargetClosestPlayer()) {
                // SwitchToBehaviourState(0);
                EndChasingPlayer_ServerRpc();
-               Plugin.Log.LogInfo($"[Update::{_sharedAiSettings.aiType}] not in range; SwitchToBehaviourState(0)");
+               // Plugin.Log.LogInfo($"[Update::{_sharedAiSettings.aiType}] not in range; SwitchToBehaviourState(0)");
                break;
             }
 
@@ -296,7 +296,7 @@ public class RollingGiantAI : EnemyAI {
 
             SetMovingTowardsTargetPlayer(targetPlayer);
             ChangeOwnershipOfEnemy(targetPlayer.actualClientId);
-            Plugin.Log.LogInfo($"[Update::{_sharedAiSettings.aiType}] SetMovingTowardsTargetPlayer({targetPlayer?.playerUsername})");
+            // Plugin.Log.LogInfo($"[Update::{_sharedAiSettings.aiType}] SetMovingTowardsTargetPlayer({targetPlayer?.playerUsername})");
          }
             break;
       }
@@ -400,7 +400,7 @@ public class RollingGiantAI : EnemyAI {
                if (!_isAgro) {
                   if (isLookedAt) {
                      _agroTimer = Mathf.SmoothDamp(_agroTimer, _sharedAiSettings.lookTimeBeforeAgro + 0.5f, ref _springVelocity, 0.5f);
-                     Plugin.Log.LogInfo($"[Update::{_sharedAiSettings.aiType}] _lookTimer: {_agroTimer}");
+                     // Plugin.Log.LogInfo($"[Update::{_sharedAiSettings.aiType}] _lookTimer: {_agroTimer}");
                      if (_agroTimer >= _sharedAiSettings.lookTimeBeforeAgro) {
                         _isAgro = true;
                      }
@@ -419,7 +419,7 @@ public class RollingGiantAI : EnemyAI {
                   if (isLookedAt) {
                      _isAgro = true;
                      MoveDecelerate();
-                     Plugin.Log.LogInfo($"[Update::{_sharedAiSettings.aiType}] got agro");
+                     // Plugin.Log.LogInfo($"[Update::{_sharedAiSettings.aiType}] got agro");
                      return;
                   }
                }
@@ -430,7 +430,7 @@ public class RollingGiantAI : EnemyAI {
                if (!_isAgro) {
                   if (isLookedAt) {
                      _isAgro = true;
-                     Plugin.Log.LogInfo($"[Update::{_sharedAiSettings.aiType}] got agro");
+                     // Plugin.Log.LogInfo($"[Update::{_sharedAiSettings.aiType}] got agro");
                      GenerateWaitTime_LocalClient();
                      MoveDecelerate();
                   }
@@ -438,11 +438,11 @@ public class RollingGiantAI : EnemyAI {
                }
 
                if (_waitTimer >= 0) {
-                  Plugin.Log.LogInfo($"[Update::{_sharedAiSettings.aiType}] _waitTimer: {_waitTimer}");
+                  // Plugin.Log.LogInfo($"[Update::{_sharedAiSettings.aiType}] _waitTimer: {_waitTimer}");
                   _waitTimer -= Time.deltaTime;
 
                   if (_waitTimer < 0) {
-                     Plugin.Log.LogInfo($"[Update::{_sharedAiSettings.aiType}] chasing time");
+                     // Plugin.Log.LogInfo($"[Update::{_sharedAiSettings.aiType}] chasing time");
                   }
                   MoveDecelerate();
                   return;
@@ -506,7 +506,7 @@ public class RollingGiantAI : EnemyAI {
    [ServerRpc(RequireOwnership = false)]
    private void BeginChasingPlayer_ServerRpc(int playerId) {
       BeginChasingPlayer_ClientRpc(playerId);
-      Plugin.Log.LogInfo($"[BeginChasingPlayer_ServerRpc::{_sharedAiSettings.aiType}] SwitchToBehaviourStateOnLocalClient(1)");
+      // Plugin.Log.LogInfo($"[BeginChasingPlayer_ServerRpc::{_sharedAiSettings.aiType}] SwitchToBehaviourStateOnLocalClient(1)");
    }
 
    [ClientRpc]
@@ -514,59 +514,59 @@ public class RollingGiantAI : EnemyAI {
       SwitchToBehaviourStateOnLocalClient(1);
       var player = StartOfRound.Instance.allPlayerScripts[playerId];
       SetMovingTowardsTargetPlayer(player);
-      Plugin.Log.LogInfo($"[BeginChasingPlayer_ClientRpc::{_sharedAiSettings.aiType}] SwitchToBehaviourStateOnLocalClient(1)");
+      // Plugin.Log.LogInfo($"[BeginChasingPlayer_ClientRpc::{_sharedAiSettings.aiType}] SwitchToBehaviourStateOnLocalClient(1)");
    }
    
    [ServerRpc(RequireOwnership = false)]
    private void EndChasingPlayer_ServerRpc() {
       EndChasingPlayer_ClientRpc();
-      Plugin.Log.LogInfo($"[EndChasingPlayer_ServerRpc::{_sharedAiSettings.aiType}] SwitchToBehaviourStateOnLocalClient(0)");
+      // Plugin.Log.LogInfo($"[EndChasingPlayer_ServerRpc::{_sharedAiSettings.aiType}] SwitchToBehaviourStateOnLocalClient(0)");
    }
    
    [ClientRpc]
    private void EndChasingPlayer_ClientRpc() {
       SwitchToBehaviourStateOnLocalClient(0);
-      Plugin.Log.LogInfo($"[EndChasingPlayer_ClientRpc::{_sharedAiSettings.aiType}] SwitchToBehaviourStateOnLocalClient(0)");
+      // Plugin.Log.LogInfo($"[EndChasingPlayer_ClientRpc::{_sharedAiSettings.aiType}] SwitchToBehaviourStateOnLocalClient(0)");
    }
 
    [ServerRpc(RequireOwnership = false)]
    private void GenerateWaitTime_ServerRpc(float waitTime) {
       _waitTimer = waitTime;
-      Plugin.Log.LogInfo($"[GenerateWaitTime_ServerRpc::{_sharedAiSettings.aiType}] _waitTimer: {_waitTimer}");
+      // Plugin.Log.LogInfo($"[GenerateWaitTime_ServerRpc::{_sharedAiSettings.aiType}] _waitTimer: {_waitTimer}");
    }
    
    private void GenerateWaitTime_LocalClient() {
       var waitTime = Mathf.Lerp(_sharedAiSettings.waitTimeMin, _sharedAiSettings.waitTimeMax, (float)RoundManager.Instance.LevelRandom.NextDouble());
       _waitTimer = waitTime;
       GenerateWaitTime_ServerRpc(waitTime);
-      Plugin.Log.LogInfo($"[GenerateWaitTime_LocalClient::{_sharedAiSettings.aiType}] _waitTimer: {_waitTimer}");
+      // Plugin.Log.LogInfo($"[GenerateWaitTime_LocalClient::{_sharedAiSettings.aiType}] _waitTimer: {_waitTimer}");
    }
 
    [ServerRpc(RequireOwnership = false)]
    private void GenerateMoveTime_ServerRpc(float moveTime) {
       _moveTimer = moveTime;
       GenerateMoveTime_ClientRpc(moveTime);
-      Plugin.Log.LogInfo($"[GenerateMoveTime_ServerRpc::{_sharedAiSettings.aiType}] _moveTimer: {_moveTimer}");
+      // Plugin.Log.LogInfo($"[GenerateMoveTime_ServerRpc::{_sharedAiSettings.aiType}] _moveTimer: {_moveTimer}");
    }
    
    private void GenerateMoveTime_LocalClient() {
       var moveTime = Mathf.Lerp(_sharedAiSettings.randomMoveTimeMin, _sharedAiSettings.randomMoveTimeMax, (float)RoundManager.Instance.LevelRandom.NextDouble());
       _moveTimer = moveTime;
       GenerateMoveTime_ServerRpc(moveTime);
-      Plugin.Log.LogInfo($"[GenerateMoveTime_LocalClient::{_sharedAiSettings.aiType}] _moveTimer: {_moveTimer}");
+      // Plugin.Log.LogInfo($"[GenerateMoveTime_LocalClient::{_sharedAiSettings.aiType}] _moveTimer: {_moveTimer}");
    }
    
    [ClientRpc]
    private void GenerateMoveTime_ClientRpc(float moveTime) {
       _moveTimer = moveTime;
-      Plugin.Log.LogInfo($"[GenerateMoveTime_ClientRpc::{_sharedAiSettings.aiType}] _moveTimer: {_moveTimer}");
+      // Plugin.Log.LogInfo($"[GenerateMoveTime_ClientRpc::{_sharedAiSettings.aiType}] _moveTimer: {_moveTimer}");
    }
 
    [ServerRpc(RequireOwnership = false)]
    private void AssignInitData_ServerRpc(float scale) {
       agent.transform.localScale = Vector3.one * scale;
       AssignInitData_ClientRpc(scale);
-      Plugin.Log.LogInfo($"[AssignInitData_ServerRpc::{_sharedAiSettings.aiType}] agent.transform.localScale: {agent.transform.localScale}");
+      // Plugin.Log.LogInfo($"[AssignInitData_ServerRpc::{_sharedAiSettings.aiType}] agent.transform.localScale: {agent.transform.localScale}");
    }
    
    private void AssignInitData_LocalClient() {
@@ -574,13 +574,13 @@ public class RollingGiantAI : EnemyAI {
       var modelScale = Mathf.Lerp(config.GiantScaleMin, config.GiantScaleMax, (float)RoundManager.Instance.LevelRandom.NextDouble());
       agent.transform.localScale = Vector3.one * modelScale;
       AssignInitData_ServerRpc(modelScale);
-      Plugin.Log.LogInfo($"[AssignInitData_LocalClient::{_sharedAiSettings.aiType}] agent.transform.localScale: {agent.transform.localScale}");
+      // Plugin.Log.LogInfo($"[AssignInitData_LocalClient::{_sharedAiSettings.aiType}] agent.transform.localScale: {agent.transform.localScale}");
    }
 
    [ClientRpc]
    private void AssignInitData_ClientRpc(float scale) {
       Init();
       agent.transform.localScale = Vector3.one * scale;
-      Plugin.Log.LogInfo($"[AssignInitData_ClientRpc::{_sharedAiSettings.aiType}] agent.transform.localScale: {agent.transform.localScale}");
+      // Plugin.Log.LogInfo($"[AssignInitData_ClientRpc::{_sharedAiSettings.aiType}] agent.transform.localScale: {agent.transform.localScale}");
    }
 }

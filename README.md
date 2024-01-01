@@ -89,6 +89,10 @@ These do not update when reloading the config in-game!
 
 ## Changelog
 
+## 2.0.1
+
+- Removes logs from ai modes that spammed the console :(
+
 ## 2.0.0
 
 - Removed Terminal API dependency
@@ -105,8 +109,7 @@ These do not update when reloading the config in-game!
     - This uses Unity's New Input System's key-bind names
   - `ReloadConfigKey` - The key to reload the config. Does not update spawn conditions.
     - This uses Unity's New Input System's key-bind names
-  - `SpawnInAllLevels` - If the Rolling Giant should spawn in all levels
-  - `SpawnInLevelsWithCoilHead` - If the Rolling Giant should only spawn in levels that Coilheads normally spawn in
+  - `SpawnIn` - Levels that the Rolling Giant can spawn in, separated by their chances of spawning
   - `SpawnInside` - If the Rolling Giant should spawn inside the dungeon
   - `SpawnDaytime` - If the Rolling Giant should spawn during the day
   - `SpawnOutside` - If the Rolling Giant should spawn outside
