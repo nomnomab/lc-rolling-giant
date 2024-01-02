@@ -29,7 +29,7 @@ public enum RollingGiantAiType {
 public class Plugin : BaseUnityPlugin {
     public const string PluginGuid = "nomnomab.rollinggiant";
     public const string PluginName = "Rolling Giant";
-    public const string PluginVersion = "2.1.3";
+    public const string PluginVersion = "2.1.4";
     
     private const int SaveFileVersion = 2;
 

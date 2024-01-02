@@ -93,6 +93,10 @@ These do not update when reloading the config in-game!
 
 ## Changelog
 
+## 2.1.4
+
+- Fixed client audio not playing due to agent speed mismatch
+
 ## 2.1.3
 
 - Slightly increases the now too low default poster spawn weight

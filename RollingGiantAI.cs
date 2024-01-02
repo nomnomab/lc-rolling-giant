@@ -18,6 +18,7 @@ public class RollingGiantAI : EnemyAI {
    private static SharedAiSettings _sharedAiSettings => CustomConfig.SharedAiSettings;
    
    private AudioSource _rollingSFX;
+   private NetworkVariable<float> _velocity = new();
 
    private float _timeSinceHittingPlayer;
    private bool _wantsToChaseThisClient;
@@ -48,15 +49,6 @@ public class RollingGiantAI : EnemyAI {
       
       Init();
       
-      _rollingSFX.loop = true;
-      _rollingSFX.clip = Plugin.WalkSound;
-      var time = NextDouble() * Plugin.WalkSound.length;
-      var pitch = Mathf.Lerp(0.96f, 1.05f, NextDouble());
-      _rollingSFX.time = time;
-      _rollingSFX.pitch = pitch;
-      _rollingSFX.volume = 0;
-      _rollingSFX.Play();
-      
       if (IsHost || IsOwner) {
          AssignInitData_LocalClient();
       }
@@ -70,6 +62,17 @@ public class RollingGiantAI : EnemyAI {
       _rollingSFX.outputAudioMixerGroup = mixer;
       creatureVoice.outputAudioMixerGroup = mixer;
       creatureSFX.outputAudioMixerGroup = mixer;
+      
+      _rollingSFX.loop = true;
+      _rollingSFX.clip = Plugin.WalkSound;
+      var time = NextDouble() * Plugin.WalkSound.length;
+      var pitch = Mathf.Lerp(0.96f, 1.05f, NextDouble());
+      _rollingSFX.time = time;
+      _rollingSFX.pitch = pitch;
+      _rollingSFX.volume = 0;
+      _rollingSFX.Play();
+      
+      // Plugin.Log.LogInfo($"[Init::{_sharedAiSettings.aiType}] _rollingSFX.time: {_rollingSFX.time}, _rollingSFX.pitch: {_rollingSFX.pitch}, _rollingSFX.volume: {_rollingSFX.volume}");
    }
 
    public override void DaytimeEnemyLeave() {
@@ -148,6 +151,10 @@ public class RollingGiantAI : EnemyAI {
          _mainCollider.isTrigger = true;
          return;
       }
+
+      if (IsHost || IsServer) {
+         _velocity.Value = agent.velocity.magnitude;
+      }
       
       base.Update();
 
@@ -159,20 +166,23 @@ public class RollingGiantAI : EnemyAI {
 
       _mainCollider.isTrigger = !_wasStopped;
 
-      var speed = agent.velocity.magnitude;
-      if (_wasStopped) {
-         _audioFade -= Time.deltaTime;
-         _audioFade = Mathf.Clamp01(_audioFade);
-
-         _rollingSFX.volume = SmoothLerp(0, _rollingSFX.volume, _audioFade);
-         // Plugin.Log.LogInfo($"[Update::{_sharedAiSettings.aiType}] stopped; _rollingSFX.volume: {_rollingSFX.volume}");
-      } else {
-         _audioFade += Time.deltaTime;
-         _audioFade = Mathf.Clamp01(_audioFade);
-
-         _rollingSFX.volume = SmoothLerp(_rollingSFX.volume, Mathf.Clamp01(ROAMING_AUDIO_PERCENT * speed + 0.05f), _audioFade);
-         // Plugin.Log.LogInfo($"[Update::{_sharedAiSettings.aiType}] rolling; _rollingSFX.volume: {_rollingSFX.volume}");
-      }
+      // var speed = !(IsOwner || IsHost) ? _velocity.Value : agent.velocity.magnitude;
+      var speed = _velocity.Value;
+      // Plugin.Log.LogInfo($"[Update::{_sharedAiSettings.aiType}] speed: {speed}/{_sharedAiSettings.moveSpeed}, _rollingSFX.volume: {_rollingSFX.volume}");
+      _rollingSFX.volume = Mathf.Lerp(0, Mathf.Clamp01(ROAMING_AUDIO_PERCENT * speed + 0.05f), speed / _sharedAiSettings.moveSpeed);
+      // if (_wasStopped) {
+      //    _audioFade -= Time.deltaTime;
+      //    _audioFade = Mathf.Clamp01(_audioFade);
+      //
+      //    _rollingSFX.volume = SmoothLerp(0, _rollingSFX.volume, _audioFade);
+      //    // Plugin.Log.LogInfo($"[Update::{_sharedAiSettings.aiType}] stopped; agent.speed: {agent.speed}, velocity: {agent.velocity.magnitude}, other: {_velocity.Value}, _rollingSFX.volume: {_rollingSFX.volume}");
+      // } else {
+      //    _audioFade += Time.deltaTime;
+      //    _audioFade = Mathf.Clamp01(_audioFade);
+      //
+      //    _rollingSFX.volume = SmoothLerp(_rollingSFX.volume, Mathf.Clamp01(ROAMING_AUDIO_PERCENT * speed + 0.05f), _audioFade);
+      //    // Plugin.Log.LogInfo($"[Update::{_sharedAiSettings.aiType}] rolling; agent.speed: {agent.speed}, velocity: {agent.velocity.magnitude}, other: {_velocity.Value}, _rollingSFX.volume: {_rollingSFX.volume}");
+      // }
 
       var gameNetworkManager = GameNetworkManager.Instance;
       var localPlayer = gameNetworkManager.localPlayerController;
