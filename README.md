@@ -44,6 +44,8 @@ These do not update when reloading the config in-game!
   - Higher chance = higher chance to get picked
   - The names are what you see in the terminal
   - `Vow:45,March:45,Rend:54,Dine:65,Offense:45,Titan:65`
+- `SpawnInAny` - If the Rolling Giant can spawn on any level
+- `SpawnInAnyChance` - The chance for the Rolling Giant to spawn in any level
 - `CanSpawnInside` - If the Rolling Giant should spawn inside the dungeon
 - `CanSpawnOutside` - If the Rolling Giant should spawn outside
 - `DisableOutsideAtNight` - If the Rolling Giant will turn off if it is outside at night.
@@ -92,6 +94,10 @@ These do not update when reloading the config in-game!
   - Defaults to `Keypad 9`
 
 ## Changelog
+
+## 2.2.0
+
+- Added a config option to spawn the Rolling Giant on any level and a weight for that option
 
 ## 2.1.4
 

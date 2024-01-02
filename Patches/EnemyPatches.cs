@@ -9,20 +9,29 @@ public static class EnemyPatches {
     [HarmonyPatch(typeof(StartOfRound), "Awake")]
     [HarmonyPostfix]
     private static void RegisterEnemy(StartOfRound __instance) {
-        var config = CustomConfig.Instance;
-        var canSpawnIn = GetLevelChances(config.SpawnIn);
-        var scrapCanSpawnIn = GetLevelChances(config.SpawnPosterIn);
+        // if (!(NetworkHandler.Instance.IsHost || NetworkHandler.Instance.IsServer)) {
+        //     return;
+        // }
+        
+        var canSpawnIn = GetLevelChances(CustomConfig.SpawnIn);
+        var scrapCanSpawnIn = GetLevelChances(CustomConfig.SpawnPosterIn);
 
         if (!__instance.allItemsList.itemsList.Contains(Plugin.PosterItem)) {
             __instance.allItemsList.itemsList.Add(Plugin.PosterItem);
         }
 
+        var spawnInAny = CustomConfig.SpawnInAny;
         foreach (var level in __instance.levels) {
             try {
                 var levelName = level.PlanetName.ToLower().Replace(" ", string.Empty);
                 foreach (var (name, chance) in canSpawnIn) {
-                    if (!levelName.Contains(name)) {
+                    var finalChance = chance;
+                    if (!spawnInAny && !levelName.Contains(name)) {
                         continue;
+                    }
+
+                    if (spawnInAny) {
+                        finalChance = CustomConfig.SpawnInAnyChance;
                     }
 
                     if (!level.spawnableScrap.Any(x => x.spawnableItem == Plugin.PosterItem)) {
@@ -37,28 +46,28 @@ public static class EnemyPatches {
                         }
                     }
 
-                    if (config.CanSpawnInside && level.Enemies.All(x => x.enemyType != Plugin.EnemyTypeInside)) {
+                    if (CustomConfig.CanSpawnInside && level.Enemies.All(x => x.enemyType != Plugin.EnemyTypeInside)) {
                         level.Enemies.Add(new SpawnableEnemyWithRarity {
                             enemyType = Plugin.EnemyTypeInside,
-                            rarity = chance
+                            rarity = finalChance
                         });
-                        Plugin.Log.LogMessage($"Added {Plugin.EnemyTypeOutside.enemyName} to {level.PlanetName} with chance of {chance} (inside)");
+                        Plugin.Log.LogMessage($"Added {Plugin.EnemyTypeOutside.enemyName} to {level.PlanetName} with chance of {finalChance} (inside)");
                     }
 
-                    if (!config.DisableOutsideAtNight && config.CanSpawnOutside && level.OutsideEnemies.All(x => x.enemyType != Plugin.EnemyTypeOutside)) {
+                    if (!CustomConfig.DisableOutsideAtNight && CustomConfig.CanSpawnOutside && level.OutsideEnemies.All(x => x.enemyType != Plugin.EnemyTypeOutside)) {
                         level.OutsideEnemies.Add(new SpawnableEnemyWithRarity {
                             enemyType = Plugin.EnemyTypeOutside,
-                            rarity = chance
+                            rarity = finalChance
                         });
-                        Plugin.Log.LogMessage($"Added {Plugin.EnemyTypeOutside.enemyName} to {level.PlanetName} with chance of {chance} (outside)");
+                        Plugin.Log.LogMessage($"Added {Plugin.EnemyTypeOutside.enemyName} to {level.PlanetName} with chance of {finalChance} (outside)");
                     }
 
-                    if (config.DisableOutsideAtNight && config.CanSpawnOutside && level.DaytimeEnemies.All(x => x.enemyType != Plugin.EnemyTypeOutsideDaytime)) {
+                    if (CustomConfig.DisableOutsideAtNight && CustomConfig.CanSpawnOutside && level.DaytimeEnemies.All(x => x.enemyType != Plugin.EnemyTypeOutsideDaytime)) {
                         level.DaytimeEnemies.Add(new SpawnableEnemyWithRarity {
                             enemyType = Plugin.EnemyTypeOutsideDaytime,
-                            rarity = chance
+                            rarity = finalChance
                         });
-                        Plugin.Log.LogMessage($"Added {Plugin.EnemyTypeOutsideDaytime.enemyName} to {level.PlanetName} with chance of {chance} (daytime)");
+                        Plugin.Log.LogMessage($"Added {Plugin.EnemyTypeOutsideDaytime.enemyName} to {level.PlanetName} with chance of {finalChance} (daytime)");
                     }
                 }
             }

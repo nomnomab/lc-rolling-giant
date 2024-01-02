@@ -17,6 +17,8 @@ public class CustomConfig : SyncedInstance<CustomConfig> {
     public static ConfigEntry<string> GotoNextAiTypeKey { get; private set; }
     public static ConfigEntry<string> ReloadConfigKey { get; private set; }
     public static ConfigEntry<string> SpawnInEntry { get; private set; }
+    public static ConfigEntry<bool> SpawnInAnyEntry { get; private set; }
+    public static ConfigEntry<int> SpawnInAnyChanceEntry { get; private set; }
     public static ConfigEntry<bool> CanSpawnInsideEntry { get; private set; }
     public static ConfigEntry<bool> CanSpawnOutsideEntry { get; private set; }
     public static ConfigEntry<bool> DisableOutsideAtNightEntry { get; private set; }
@@ -26,11 +28,13 @@ public class CustomConfig : SyncedInstance<CustomConfig> {
     public const string Name1 = "1. General Settings";
     public float GiantScaleMin { get; private set; }
     public float GiantScaleMax { get; private set; }
-    public string SpawnIn { get; private set; }
-    public bool CanSpawnInside { get; private set; }
-    public bool CanSpawnOutside { get; private set; }
-    public bool DisableOutsideAtNight { get; private set; }
-    public string SpawnPosterIn { get; private set; }
+    public static string SpawnIn { get; private set; }
+    public static bool SpawnInAny { get; private set; }
+    public static int SpawnInAnyChance { get; private set; }
+    public static bool CanSpawnInside { get; private set; }
+    public static bool CanSpawnOutside { get; private set; }
+    public static bool DisableOutsideAtNight { get; private set; }
+    public static string SpawnPosterIn { get; private set; }
 
     // ai settings
     public const string Name2 = "2. AI Settings";
@@ -130,6 +134,8 @@ public class CustomConfig : SyncedInstance<CustomConfig> {
         GiantScaleMinEntry.Value = GiantScaleMin;
         GiantScaleMaxEntry.Value = GiantScaleMax;
         SpawnInEntry.Value = SpawnIn;
+        SpawnInAnyEntry.Value = SpawnInAny;
+        SpawnInAnyChanceEntry.Value = SpawnInAnyChance;
         CanSpawnInsideEntry.Value = CanSpawnInside;
         CanSpawnOutsideEntry.Value = CanSpawnOutside;
         DisableOutsideAtNightEntry.Value = DisableOutsideAtNight;
@@ -168,13 +174,21 @@ public class CustomConfig : SyncedInstance<CustomConfig> {
     public void Reload(bool setValues = true) {
         // general settings
         // ChanceForGiantEntry =_config.Bind(Name1, nameof(ChanceForGiant), 0.4f, "0.0-1.0: Chance for a Rolling Giant to spawn. Higher means more chances for a Rolling Giant.");
-        GiantScaleMinEntry = _config.Bind(Name1, nameof(GiantScaleMin), 0.9f, "The minimum scale of the Rolling Giant. This changes how small the Giant can be.");
-        GiantScaleMaxEntry = _config.Bind(Name1, nameof(GiantScaleMax), 1.1f, "The maximum scale of the Rolling Giant. This changes how big the Giant can be.");
+        GiantScaleMinEntry = _config.Bind(Name1, nameof(GiantScaleMin), 0.9f, "The minimum scale of the Rolling Giant.\nThis changes how small the Giant can be.\nThis is a multiplier, so 0.5 is half as large.");
+        GiantScaleMaxEntry = _config.Bind(Name1, nameof(GiantScaleMax), 1.1f, "The maximum scale of the Rolling Giant.\nThis changes how big the Giant can be.\nThis is a multiplier, so 2 is twice as large.");
 
         SpawnInEntry = _config.Bind(Name1,
             nameof(SpawnIn),
             "Vow:45,March:45,Rend:54,Dine:65,Offense:45,Titan:65",
             "Where the Rolling Giant can spawn.\nSeparate each level with a comma, and put a chance (no decimals) separated by a colon.\nVanilla caps at 100, but you can go farther.\nThis chance is also a weight, not a percentage.\nHigher chance = higher chance to get picked\nThe names are what you see in the terminal\nExample: Vow:6,March:10");
+        SpawnInAnyEntry = _config.Bind(Name1,
+            nameof(SpawnInAny),
+            false,
+            "If the Rolling Giant can spawn in any level.");
+        SpawnInAnyChanceEntry = _config.Bind(Name1,
+            nameof(SpawnInAnyChance),
+            45,
+            "The chance for the Rolling Giant to spawn in any level.\nRequires SpawnInAny to be enabled!\nThis is a weight, not a percentage.\nHigher chance = higher chance to get picked");
         CanSpawnInsideEntry = _config.Bind(Name1,
             nameof(CanSpawnInside),
             true,
@@ -286,6 +300,8 @@ public class CustomConfig : SyncedInstance<CustomConfig> {
             GiantScaleMin = GiantScaleMinEntry.Value;
             GiantScaleMax = GiantScaleMaxEntry.Value;
             SpawnIn = SpawnInEntry.Value;
+            SpawnInAny = SpawnInAnyEntry.Value;
+            SpawnInAnyChance = SpawnInAnyChanceEntry.Value;
             CanSpawnInside = CanSpawnInsideEntry.Value;
             CanSpawnOutside = CanSpawnOutsideEntry.Value;
             DisableOutsideAtNight = DisableOutsideAtNightEntry.Value;
