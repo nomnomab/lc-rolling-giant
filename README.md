@@ -93,6 +93,10 @@ These do not update when reloading the config in-game!
 
 ## Changelog
 
+## 2.1.3
+
+- Slightly increases the now too low default poster spawn weight
+
 ## 2.1.2
 
 - Removed a multipler that was applied to the poster rarity for some reason
