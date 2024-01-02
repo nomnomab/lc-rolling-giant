@@ -43,6 +43,10 @@
         <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Lethal Company\Lethal Company_Data\Managed\Unity.TextMeshPro.dll</HintPath>
       </Reference>
     </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="plugin\BepInEx\plugins\RollingGiant\" />
+    </ItemGroup>
     
     <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
       <Exec Command="rmdir plugin/BepInEx/ /s /q&#xA;mkdir -p plugin/BepInEx/plugins/RollingGiant&#xA;xcopy /y README.md plugin" />

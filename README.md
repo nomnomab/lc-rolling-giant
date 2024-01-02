@@ -93,6 +93,10 @@ These do not update when reloading the config in-game!
 
 ## Changelog
 
+## 2.1.2
+
+- Removed a multipler that was applied to the poster rarity for some reason
+
 ## 2.1.1
 
 - Removed the soft dependency to LethalSettings, as it somehow broke through a try catch which broke the mod loading.

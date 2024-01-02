@@ -30,7 +30,7 @@ public static class EnemyPatches {
                         if (!string.IsNullOrEmpty(scrap.Item1)) {
                             level.spawnableScrap.Add(new SpawnableItemWithRarity {
                                 spawnableItem = Plugin.PosterItem,
-                                rarity = scrap.Item2 * 50
+                                rarity = scrap.Item2
                             });
 
                             Plugin.Log.LogMessage($"Added {Plugin.PosterItem.itemName} to {level.PlanetName} with chance of {scrap.Item2}");
