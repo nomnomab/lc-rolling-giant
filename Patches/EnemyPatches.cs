@@ -12,57 +12,62 @@ public static class EnemyPatches {
         var config = CustomConfig.Instance;
         var canSpawnIn = GetLevelChances(config.SpawnIn);
         var scrapCanSpawnIn = GetLevelChances(config.SpawnPosterIn);
-        
+
         if (!__instance.allItemsList.itemsList.Contains(Plugin.PosterItem)) {
             __instance.allItemsList.itemsList.Add(Plugin.PosterItem);
         }
-        
+
         foreach (var level in __instance.levels) {
-            var levelName = level.PlanetName.ToLower().Replace(" ", string.Empty);
-            foreach (var (name, chance) in canSpawnIn) {
-                if (!levelName.Contains(name)) {
-                    continue;
-                }
+            try {
+                var levelName = level.PlanetName.ToLower().Replace(" ", string.Empty);
+                foreach (var (name, chance) in canSpawnIn) {
+                    if (!levelName.Contains(name)) {
+                        continue;
+                    }
 
-                if (!level.spawnableScrap.Any(x => x.spawnableItem == Plugin.PosterItem)) {
-                    var scrap = scrapCanSpawnIn.FirstOrDefault(x => levelName.Contains(x.Item1));
-                    if (!string.IsNullOrEmpty(scrap.Item1)) {
-                        level.spawnableScrap.Add(new SpawnableItemWithRarity {
-                            spawnableItem = Plugin.PosterItem,
-                            rarity = scrap.Item2 * 50
+                    if (!level.spawnableScrap.Any(x => x.spawnableItem == Plugin.PosterItem)) {
+                        var scrap = scrapCanSpawnIn.FirstOrDefault(x => levelName.Contains(x.Item1));
+                        if (!string.IsNullOrEmpty(scrap.Item1)) {
+                            level.spawnableScrap.Add(new SpawnableItemWithRarity {
+                                spawnableItem = Plugin.PosterItem,
+                                rarity = scrap.Item2 * 50
+                            });
+
+                            Plugin.Log.LogMessage($"Added {Plugin.PosterItem.itemName} to {level.PlanetName} with chance of {scrap.Item2}");
+                        }
+                    }
+
+                    if (config.CanSpawnInside && level.Enemies.All(x => x.enemyType != Plugin.EnemyTypeInside)) {
+                        level.Enemies.Add(new SpawnableEnemyWithRarity {
+                            enemyType = Plugin.EnemyTypeInside,
+                            rarity = chance
                         });
+                        Plugin.Log.LogMessage($"Added {Plugin.EnemyTypeOutside.enemyName} to {level.PlanetName} with chance of {chance} (inside)");
+                    }
 
-                        Plugin.Log.LogMessage($"Added {Plugin.PosterItem.itemName} to {level.PlanetName} with chance of {scrap.Item2}");
+                    if (!config.DisableOutsideAtNight && config.CanSpawnOutside && level.OutsideEnemies.All(x => x.enemyType != Plugin.EnemyTypeOutside)) {
+                        level.OutsideEnemies.Add(new SpawnableEnemyWithRarity {
+                            enemyType = Plugin.EnemyTypeOutside,
+                            rarity = chance
+                        });
+                        Plugin.Log.LogMessage($"Added {Plugin.EnemyTypeOutside.enemyName} to {level.PlanetName} with chance of {chance} (outside)");
+                    }
+
+                    if (config.DisableOutsideAtNight && config.CanSpawnOutside && level.DaytimeEnemies.All(x => x.enemyType != Plugin.EnemyTypeOutsideDaytime)) {
+                        level.DaytimeEnemies.Add(new SpawnableEnemyWithRarity {
+                            enemyType = Plugin.EnemyTypeOutsideDaytime,
+                            rarity = chance
+                        });
+                        Plugin.Log.LogMessage($"Added {Plugin.EnemyTypeOutsideDaytime.enemyName} to {level.PlanetName} with chance of {chance} (daytime)");
                     }
                 }
-                
-                if (config.CanSpawnInside && level.Enemies.All(x => x.enemyType != Plugin.EnemyTypeInside)) {
-                    level.Enemies.Add(new SpawnableEnemyWithRarity {
-                        enemyType = Plugin.EnemyTypeInside,
-                        rarity = chance
-                    });
-                    Plugin.Log.LogMessage($"Added {Plugin.EnemyTypeOutside.enemyName} to {level.PlanetName} with chance of {chance} (inside)");
-                }
-                
-                if (!config.DisableOutsideAtNight && config.CanSpawnOutside && level.OutsideEnemies.All(x => x.enemyType != Plugin.EnemyTypeOutside)) {
-                    level.OutsideEnemies.Add(new SpawnableEnemyWithRarity {
-                        enemyType = Plugin.EnemyTypeOutside,
-                        rarity = chance
-                    });
-                    Plugin.Log.LogMessage($"Added {Plugin.EnemyTypeOutside.enemyName} to {level.PlanetName} with chance of {chance} (outside)");
-                }
-                
-                if (config.DisableOutsideAtNight && config.CanSpawnOutside && level.DaytimeEnemies.All(x => x.enemyType != Plugin.EnemyTypeOutsideDaytime)) {
-                    level.DaytimeEnemies.Add(new SpawnableEnemyWithRarity {
-                        enemyType = Plugin.EnemyTypeOutsideDaytime,
-                        rarity = chance
-                    });
-                    Plugin.Log.LogMessage($"Added {Plugin.EnemyTypeOutsideDaytime.enemyName} to {level.PlanetName} with chance of {chance} (daytime)");
-                }
+            }
+            catch (System.Exception e) {
+                Plugin.Log.LogError($"Failed to add enemy to {level.PlanetName}!\n{e}");
             }
         }
     }
-    
+
     private static (string, int)[] GetLevelChances(string str) {
         if (string.IsNullOrEmpty(str)) {
             return new (string, int)[0];

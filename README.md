@@ -29,7 +29,6 @@ Generated after launching the game for the first time.
 
 ### General
 
-- `ChanceForGiant` = 0.0-1.0 - Chance for a Rolling Giant to spawn. Higher means more chances for a Rolling Giant
 - `GiantScaleMin` - The minimum scale of the Rolling Giant's model
   - This changes how small the Giant can be
 - `GiantScaleMax` - The maximum scale of the Rolling Giant's model
@@ -40,14 +39,18 @@ Generated after launching the game for the first time.
 These do not update when reloading the config in-game!
 
 - `SpawnIn` - Levels that the Rolling Giant can spawn in, separated by their chances of spawning
-  - Lower chance = more rare
+  - Vanilla caps at 100, but you can go farther.
+  - This chance is also a weight, not a percentage
+  - Higher chance = higher chance to get picked
   - The names are what you see in the terminal
-  - `Vow:6,March:10,Rend:43,Dine:53,Offense:25,Titan:59`
+  - `Vow:45,March:45,Rend:54,Dine:65,Offense:45,Titan:65`
 - `CanSpawnInside` - If the Rolling Giant should spawn inside the dungeon
 - `CanSpawnOutside` - If the Rolling Giant should spawn outside
 - `DisableOutsideAtNight` - If the Rolling Giant will turn off if it is outside at night.
 - `SpawnPosterIn` - Where the Rolling Giant poster scrap can spawn, separated by their chances of spawning
-  - Lower chance = more rare
+  - Vanilla caps at 100, but you can go farther.
+  - This chance is also a weight, not a percentage
+  - Higher chance = higher chance to get picked
   - The names are what you see in the terminal
   - `Vow:12,March:12,Rend:12,Dine:12,Offense:12,Titan:12`
 
@@ -89,6 +92,15 @@ These do not update when reloading the config in-game!
   - Defaults to `Keypad 9`
 
 ## Changelog
+
+## 2.1.1
+
+- Removed the soft dependency to LethalSettings, as it somehow broke through a try catch which broke the mod loading.
+- Increased the default spawn weights slightly.
+- Added a slight probability curve to the giant's spawning inside, outside, and outside during the day.
+  - Inside will slightly more common at the start
+  - Outside will be slightly more common at the start and a bit more common near the end
+  - Outside during the day will be slightly more common at the start
 
 ## 2.1.0
 

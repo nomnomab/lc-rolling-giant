@@ -173,8 +173,8 @@ public class CustomConfig : SyncedInstance<CustomConfig> {
 
         SpawnInEntry = _config.Bind(Name1,
             nameof(SpawnIn),
-            "Vow:6,March:10,Rend:43,Dine:53,Offense:25,Titan:59",
-            "Where the Rolling Giant can spawn.\nSeparate each level with a comma, and put a chance (between 0 and 100) separated by a colon.\nLower chance = more rare\nThe names are what you see in the terminal\nExample: Vow:6,March:10");
+            "Vow:45,March:45,Rend:54,Dine:65,Offense:45,Titan:65",
+            "Where the Rolling Giant can spawn.\nSeparate each level with a comma, and put a chance (no decimals) separated by a colon.\nVanilla caps at 100, but you can go farther.\nThis chance is also a weight, not a percentage.\nHigher chance = higher chance to get picked\nThe names are what you see in the terminal\nExample: Vow:6,March:10");
         CanSpawnInsideEntry = _config.Bind(Name1,
             nameof(CanSpawnInside),
             true,
@@ -189,8 +189,8 @@ public class CustomConfig : SyncedInstance<CustomConfig> {
             "If the Rolling Giant will turn off if it is outside at night.");
         SpawnPosterInEntry = _config.Bind(Name1,
             nameof(SpawnPosterIn),
-            "Vow:12,March:12,Rend:12,Dine:12,Offense:12,Titan:12",
-            "Where the Rolling Giant poster scrap can spawn.\nSeparate each level with a comma, and put a chance (between 0 and 100) separated by a colon.\nLower chance = more rare\nThe names are what you see in the terminal\nExample: Vow:12,March:12,Rend:12,Dine:12,Offense:12,Titan:12");
+            "Vow:4,March:2,Rend:4,Dine:3,Offense:3,Titan:4",
+            "Where the Rolling Giant poster scrap can spawn.\nSeparate each level with a comma, and put a chance separated by a colon.\nVanilla caps at 100, but you can go farther.\nThis chance is also a weight, not a percentage.\nHigher chance = higher chance to get picked\nThe names are what you see in the terminal\nExample: Vow:12,March:12,Rend:12,Dine:12,Offense:12,Titan:12");
 
         GotoPreviousAiTypeKey ??= _config.Bind("Host",
             nameof(GotoPreviousAiTypeKey),

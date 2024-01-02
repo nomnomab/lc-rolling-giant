@@ -30,10 +30,6 @@
       <Reference Include="Assembly-CSharp">
         <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Lethal Company\Lethal Company_Data\Managed\Assembly-CSharp.dll</HintPath>
       </Reference>
-      <Reference Include="LethalSettings">
-        <HintPath>..\..\..\Modding\willis81808-LethalSettings-1.2.1\LethalSettings.dll</HintPath>
-        <Private>False</Private>
-      </Reference>
       <Reference Include="Unity.Collections">
         <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Lethal Company\Lethal Company_Data\Managed\Unity.Collections.dll</HintPath>
       </Reference>

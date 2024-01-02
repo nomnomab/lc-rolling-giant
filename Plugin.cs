@@ -26,11 +26,10 @@ public enum RollingGiantAiType {
 }
 
 [BepInPlugin(PluginGuid, PluginName, PluginVersion)]
-// [BepInDependency("com.willis.lc.lethalsettings", BepInDependency.DependencyFlags.SoftDependency)]
 public class Plugin : BaseUnityPlugin {
     public const string PluginGuid = "nomnomab.rollinggiant";
     public const string PluginName = "Rolling Giant";
-    public const string PluginVersion = "2.1.0";
+    public const string PluginVersion = "2.1.1";
     
     private const int SaveFileVersion = 2;
 
@@ -58,7 +57,6 @@ public class Plugin : BaseUnityPlugin {
         PluginDirectory = Info.Location;
         LoadSettings();
         RemoveOldSettings();
-        // LethalSettingsAccessor.GenerateUi();
 #if DEBUG
         new ILHook(typeof(StackTrace).GetMethod("AddFrames", BindingFlags.Instance | BindingFlags.NonPublic), IlHook);
 #endif
