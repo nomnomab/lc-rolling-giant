@@ -28,6 +28,8 @@ public class StartOfRoundPatches {
     [HarmonyPatch(typeof(DeadBodyInfo), "Start")]
     [HarmonyPostfix]
     private static void SetCustomRagdoll(DeadBodyInfo __instance) {
+        if (!__instance.TryGetComponent(out RollingGiantDeadBody _)) return;
+        // replace the material because internally it changes it to default orange
         var playerRagdoll = Plugin.PlayerRagdoll;
         var material = playerRagdoll.GetComponent<SkinnedMeshRenderer>().sharedMaterial;
         __instance.GetComponent<SkinnedMeshRenderer>().sharedMaterial = material;

@@ -95,6 +95,10 @@ These do not update when reloading the config in-game!
 
 ## Changelog
 
+## 2.2.1
+
+- Fixed dead body shader being applied to all dead bodies and not only to the Rolling Giant player death type
+
 ## 2.2.0
 
 - Added a config option to spawn the Rolling Giant on any level and a weight for that option
