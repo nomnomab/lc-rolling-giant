@@ -49,6 +49,7 @@ These do not update when reloading the config in-game!
 - `CanSpawnInside` - If the Rolling Giant should spawn inside the dungeon
 - `CanSpawnOutside` - If the Rolling Giant should spawn outside
 - `DisableOutsideAtNight` - If the Rolling Giant will turn off if it is outside at night.
+- `MaxPerLevel` - The maximum amount of Rolling Giant's that can spawn in a level
 - `SpawnPosterIn` - Where the Rolling Giant poster scrap can spawn, separated by their chances of spawning
   - Vanilla caps at 100, but you can go farther.
   - This chance is also a weight, not a percentage
@@ -59,6 +60,7 @@ These do not update when reloading the config in-game!
 ### AI
 
 - `AiType` - Type of AI the Rolling Giant uses
+  - Putting multiple will randomly choose between them each time you land on a moon 
   - Coilhead - Move when the player is not looking at it
   - MoveWhenLooking - Move when the player is looking at it
   - RandomlyMoveWhileLooking - Randomly move while the player is looking at it
@@ -94,6 +96,17 @@ These do not update when reloading the config in-game!
   - Defaults to `Keypad 9`
 
 ## Changelog
+
+## 2.3.0
+
+- Added a config option to change the max amount of Rolling Giant's that can spawn in a level
+- Changed the config option for AiType to accept multiple values
+  - This allows for a random AI type to be picked at the start of each moon
+  - AI type is now synced across clients with a NetworkVariable instead of with the config sync
+- Added a new Rolling Giant model that is more optimized than the previous one
+  - Thanks to `Krampus` for the help on that!
+- The Rolling Giant now properly checks line of sight to start chasing the player
+- Fixed a client bug that would complain about an invalid navmesh agent
 
 ## 2.2.1
 
@@ -202,6 +215,7 @@ These do not update when reloading the config in-game!
 ## Acknowledgments
 
 - `Ayyobee` for a bunch of online testing and suggestions.
+- `Krampus` for the help with the new Rolling Giant model.
 
 <br/>
 

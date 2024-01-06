@@ -1,7 +1,9 @@
 ﻿using System.Linq;
 using HarmonyLib;
+using RollingGiant.Settings;
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.Pool;
 
 namespace RollingGiant.Patches; 
 
@@ -14,6 +16,22 @@ public class StartOfRoundPatches {
         var playerRagdoll = Plugin.PlayerRagdoll;
         if (playerRagdoll && !ragdolls.Contains(playerRagdoll)) {
             ragdolls.Add(playerRagdoll);
+        }
+
+        RandomizeAiType();
+    }
+
+    [HarmonyPatch(typeof(StartOfRound), "StartGame")]
+    [HarmonyPostfix]
+    private static void RandomizeAiType() {
+        if (NetworkManager.Singleton.IsHost || NetworkManager.Singleton.IsServer) {
+            // select a random ai type
+            var aiType = CustomConfig.AiType.GetRandom();
+            NetworkHandler.Instance.SetAiType(aiType);
+            // CustomConfig.Instance.AiType = aiType;
+            // Plugin.Log.LogMessage($"Selected ai type: {aiType}");
+            // HUDManager.Instance.DisplayTip("Ai type changed", aiType.ToString());
+            // CustomConfig.RequestSync();
         }
     }
     

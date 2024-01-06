@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using RollingGiant.Settings;
 using Unity.Netcode;
@@ -10,6 +11,10 @@ namespace RollingGiant;
 
 public class NetworkHandler : NetworkBehaviour {
     public static NetworkHandler Instance { get; private set; }
+    public static RollingGiantAiType AiType => Instance._aiType.Value;
+    private readonly static List<RollingGiantAiType> _aiTypes = Enum.GetValues(typeof(RollingGiantAiType)).Cast<RollingGiantAiType>().ToList();
+    
+    private NetworkVariable<RollingGiantAiType> _aiType = new();
 
     private static InputAction _gotoPreviousAiType;
     private static InputAction _gotoNextAiType;
@@ -27,6 +32,8 @@ public class NetworkHandler : NetworkBehaviour {
             if (Instance) {
                 Instance.gameObject.GetComponent<NetworkObject>().Despawn();
             }
+            
+            _aiType.Value = CustomConfig.AiType.GetFirst();
         }
         Instance = this;
         
@@ -77,31 +84,38 @@ public class NetworkHandler : NetworkBehaviour {
         base.OnNetworkSpawn();
     }
     
+    public void SetAiType(RollingGiantAiType aiType) {
+        if (!(IsServer || IsHost)) return;
+        SetNewAiType(aiType, showTip: false);
+    }
+
     private void Update() {
         if (!(IsServer || IsHost)) return;
 
         if (_gotoPreviousAiType.WasPressedThisFrame()) {
             // previous ai
-            var newAi = (int)CustomConfig.Instance.AiType - 1;
+            var newAi = _aiTypes.IndexOf(_aiType.Value) - 1;
             if (newAi < 0) {
                 newAi = Enum.GetValues(typeof(RollingGiantAiType)).Length - 1;
             }
 
-            SetNewAiType((RollingGiantAiType)newAi);
+            SetNewAiType(_aiTypes[newAi]);
         } else if (_gotoNextAiType.WasPressedThisFrame()) {
             // next ai
-            var newAi = (int)CustomConfig.Instance.AiType + 1;
-            if (newAi >= Enum.GetValues(typeof(RollingGiantAiType)).Length) {
+            var newAi = _aiTypes.IndexOf(_aiType.Value) + 1;
+            if (newAi >= _aiTypes.Count) {
                 newAi = 0;
             }
 
-            SetNewAiType((RollingGiantAiType)newAi);
+            SetNewAiType(_aiTypes[newAi]);
         } else if (_reloadConfig.WasPressedThisFrame()) {
             // reload config
             Plugin.Config.Reload();
             CustomConfig.Instance.Reload();
-            HUDManager.Instance.DisplayTip("Rolling Giant config reloaded", CustomConfig.Instance.AiType.ToString());
-            SetNewAiType(CustomConfig.Instance.AiType);
+            
+            _aiType.Value = CustomConfig.AiType.GetFirst();
+            SetNewAiType(_aiType.Value);
+            HUDManager.Instance.DisplayTip("Config reloaded", $"Ai defaulted to {_aiType.Value}");
         } 
 #if DEBUG
         else if(_spawnGiant.WasPressedThisFrame()) {
@@ -127,7 +141,7 @@ public class NetworkHandler : NetworkBehaviour {
                     instance.gameObject.GetComponentInChildren<NetworkObject>().Spawn(true);
                 }
                 
-                HUDManager.Instance.DisplayTip("Spawned enemy", enemy.enemyType.name);
+                HUDManager.Instance.DisplayTip("Spawned enemy", $"{enemy.enemyType.name}\n{_aiType.Value}");
                 return;
             }
             
@@ -167,11 +181,16 @@ public class NetworkHandler : NetworkBehaviour {
 #endif
     }
 
-    private void SetNewAiType(RollingGiantAiType aiType) {
-        CustomConfig.Instance.AiType = aiType;
+    private void SetNewAiType(RollingGiantAiType aiType, bool showTip = true) {
+        var lastAiType = _aiType.Value;
+        _aiType.Value = aiType;
         CustomConfig.SetCurrentAi();
         EmitSharedServerSettingsClientRpc();
-        HUDManager.Instance.DisplayTip("Rolling Giant AI changed", aiType.ToString());
+        if (HUDManager.Instance && lastAiType != aiType && showTip) {
+            HUDManager.Instance.DisplayTip("Rolling Giant AI changed", aiType.ToString());
+        }
+        
+        Plugin.Log.LogMessage($"Rolling Giant AI changed: {aiType}");
     }
     
     [ClientRpc]

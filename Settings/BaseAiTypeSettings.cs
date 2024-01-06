@@ -3,7 +3,7 @@
 namespace RollingGiant.Settings;
 
 public struct SharedAiSettings: INetworkSerializable {
-    public RollingGiantAiType aiType;
+    // public RollingGiantAiType aiType;
     
     public float moveSpeed;
     public float moveAcceleration;
@@ -23,7 +23,7 @@ public struct SharedAiSettings: INetworkSerializable {
     public float lookTimeBeforeAgro;
 
     public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter {
-        serializer.SerializeValue(ref aiType);
+        // serializer.SerializeValue(ref aiType);
         serializer.SerializeValue(ref moveSpeed);
         serializer.SerializeValue(ref moveAcceleration);
         serializer.SerializeValue(ref moveDeceleration);
@@ -41,6 +41,6 @@ public struct SharedAiSettings: INetworkSerializable {
 
     public override string ToString() {
         // return $"aiType: {aiType}, moveSpeed: {moveSpeed}, moveAcceleration: {moveAcceleration}, moveDeceleration: {moveDeceleration}, rotateToLookAtPlayer: {rotateToLookAtPlayer}, delayBeforeLookingAtPlayer: {delayBeforeLookingAtPlayer}, lookAtPlayerDuration: {lookAtPlayerDuration}, canWander: {canWander}, chaseMaxDistance: {chaseMaxDistance}, waitTimeMin: {waitTimeMin}, waitTimeMax: {waitTimeMax}, randomMoveTimeMin: {randomMoveTimeMin}, randomMoveTimeMax: {randomMoveTimeMax}, lookTimeBeforeAgro: {lookTimeBeforeAgro}";
-        return $"aiType: {aiType}, moveSpeed: {moveSpeed}, moveAcceleration: {moveAcceleration}, moveDeceleration: {moveDeceleration}, rotateToLookAtPlayer: {rotateToLookAtPlayer}, delayBeforeLookingAtPlayer: {delayBeforeLookingAtPlayer}, lookAtPlayerDuration: {lookAtPlayerDuration}, waitTimeMin: {waitTimeMin}, waitTimeMax: {waitTimeMax}, randomMoveTimeMin: {randomMoveTimeMin}, randomMoveTimeMax: {randomMoveTimeMax}, lookTimeBeforeAgro: {lookTimeBeforeAgro}";
+        return $"moveSpeed: {moveSpeed}, moveAcceleration: {moveAcceleration}, moveDeceleration: {moveDeceleration}, rotateToLookAtPlayer: {rotateToLookAtPlayer}, delayBeforeLookingAtPlayer: {delayBeforeLookingAtPlayer}, lookAtPlayerDuration: {lookAtPlayerDuration}, waitTimeMin: {waitTimeMin}, waitTimeMax: {waitTimeMax}, randomMoveTimeMin: {randomMoveTimeMin}, randomMoveTimeMax: {randomMoveTimeMax}, lookTimeBeforeAgro: {lookTimeBeforeAgro}";
     }
 }

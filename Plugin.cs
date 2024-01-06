@@ -1,4 +1,6 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
+using System.Linq;
 using System.Reflection;
 using BepInEx;
 using BepInEx.Configuration;
@@ -7,6 +9,8 @@ using HarmonyLib;
 using RollingGiant.Patches;
 using RollingGiant.Settings;
 using UnityEngine;
+using UnityEngine.Pool;
+using Random = UnityEngine.Random;
 
 #if DEBUG
 using System.Diagnostics;
@@ -16,22 +20,13 @@ using MonoMod.RuntimeDetour;
 
 namespace RollingGiant;
 
-public enum RollingGiantAiType {
-    Coilhead,
-    InverseCoilhead,
-    RandomlyMoveWhileLooking,
-    LookingTooLongKeepsAgro,
-    FollowOnceAgro,
-    OnceSeenAgroAfterTimer
-}
-
 [BepInPlugin(PluginGuid, PluginName, PluginVersion)]
 public class Plugin : BaseUnityPlugin {
     public const string PluginGuid = "nomnomab.rollinggiant";
     public const string PluginName = "Rolling Giant";
-    public const string PluginVersion = "2.2.1";
+    public const string PluginVersion = "2.3.0";
     
-    private const int SaveFileVersion = 3;
+    private const int SaveFileVersion = 5;
 
     public static string PluginDirectory;
     public static CustomConfig CustomConfig { get; private set; }
@@ -127,6 +122,11 @@ public class Plugin : BaseUnityPlugin {
             EnemyTypeInside = Bundle.LoadAsset<EnemyType>("Assets/RollingGiant/Data/RollingGiant_EnemyType.asset");
             EnemyTypeOutside = Bundle.LoadAsset<EnemyType>("Assets/RollingGiant/Data/RollingGiant_EnemyType_Outside.asset");
             EnemyTypeOutsideDaytime = Bundle.LoadAsset<EnemyType>("Assets/RollingGiant/Data/RollingGiant_EnemyType_Outside_Daytime.asset");
+            
+            EnemyTypeInside.MaxCount = CustomConfig.MaxPerLevel;
+            EnemyTypeOutside.MaxCount = CustomConfig.MaxPerLevel;
+            EnemyTypeOutsideDaytime.MaxCount = CustomConfig.MaxPerLevel;
+            
             NetworkPatches.RegisterPrefab(EnemyTypeInside.enemyPrefab);
             NetworkPatches.RegisterPrefab(EnemyTypeOutside.enemyPrefab);
             NetworkPatches.RegisterPrefab(EnemyTypeOutsideDaytime.enemyPrefab);
@@ -192,3 +192,49 @@ public class DebugEditorPatch {
     }
 }
 #endif
+
+[Flags]
+public enum RollingGiantAiType {
+    Coilhead = 1,
+    InverseCoilhead = 2,
+    RandomlyMoveWhileLooking = 4,
+    LookingTooLongKeepsAgro = 8,
+    FollowOnceAgro = 16,
+    OnceSeenAgroAfterTimer = 32
+}
+
+public static class RollingGiantAiTypeExtensions {
+    public static RollingGiantAiType GetFirst(this RollingGiantAiType aiType) {
+        var enumTypes = Enum.GetValues(typeof(RollingGiantAiType)).Cast<RollingGiantAiType>().ToArray();
+        for (int i = 0; i < enumTypes.Length; i++) {
+            var type = enumTypes[i];
+            if ((aiType & type) == type) {
+                return type;
+            }
+        }
+        
+        // none, so random
+        return aiType;
+    }
+    
+    public static RollingGiantAiType GetRandom(this RollingGiantAiType aiType) {
+        using var _ = ListPool<RollingGiantAiType>.Get(out var types);
+        var enumTypes = Enum.GetValues(typeof(RollingGiantAiType)).Cast<RollingGiantAiType>().ToArray();
+        for (int i = 0; i < enumTypes.Length; i++) {
+            var type = enumTypes[i];
+            if ((aiType & type) == type) {
+                types.Add(type);
+            }
+        }
+
+        var selectedAiType = aiType;
+        if (types.Count > 1) {
+            selectedAiType = types[Random.Range(0, types.Count)];
+        } else if (types.Count == 0) {
+            // none, so random
+            selectedAiType = enumTypes[Random.Range(1, enumTypes.Length)];
+        }
+        
+        return selectedAiType;
+    }
+}

@@ -22,6 +22,7 @@ public class CustomConfig : SyncedInstance<CustomConfig> {
     public static ConfigEntry<bool> CanSpawnInsideEntry { get; private set; }
     public static ConfigEntry<bool> CanSpawnOutsideEntry { get; private set; }
     public static ConfigEntry<bool> DisableOutsideAtNightEntry { get; private set; }
+    public static ConfigEntry<int> MaxPerLevelEntry { get; private set; }
     public static ConfigEntry<string> SpawnPosterInEntry { get; private set; }
 
     // general settings
@@ -34,14 +35,15 @@ public class CustomConfig : SyncedInstance<CustomConfig> {
     public static bool CanSpawnInside { get; private set; }
     public static bool CanSpawnOutside { get; private set; }
     public static bool DisableOutsideAtNight { get; private set; }
+    public static int MaxPerLevel { get; private set; }
     public static string SpawnPosterIn { get; private set; }
 
     // ai settings
     public const string Name2 = "2. AI Settings";
     public const string AiTypeDescription =
-        "The AI type of the Rolling Giant.\nCoilhead = Coilhead AI\nInverseCoilhead = Move when player is looking at it\nRandomlyMoveWhileLooking = Randomly move while the player is looking at it\nLookingTooLongKeepsAgro = If the player looks at it for too long it doesn't stop chasing\nFollowOnceAgro = Once the player is noticed, the Rolling Giant will follow the player constantly\nOnceSeenAgroAfterTimer = Once the player sees the Rolling Giant, it will chase the player after a timer";
+        "The AI type of the Rolling Giant.\n- Putting multiple will randomly choose between them each time you land on a moon\nCoilhead = Coilhead AI\nInverseCoilhead = Move when player is looking at it\nRandomlyMoveWhileLooking = Randomly move while the player is looking at it\nLookingTooLongKeepsAgro = If the player looks at it for too long it doesn't stop chasing\nFollowOnceAgro = Once the player is noticed, the Rolling Giant will follow the player constantly\nOnceSeenAgroAfterTimer = Once the player sees the Rolling Giant, it will chase the player after a timer";
 
-    public RollingGiantAiType AiType { get; internal set; }
+    public static RollingGiantAiType AiType { get; internal set; }
 
     public const string MoveSpeedDescription = "The speed of the Rolling Giant in m/s\u00b2.";
     public const string MoveAccelerationDescription = "How long it takes the Rolling Giant to get to its movement speed. in seconds";
@@ -139,6 +141,7 @@ public class CustomConfig : SyncedInstance<CustomConfig> {
         CanSpawnInsideEntry.Value = CanSpawnInside;
         CanSpawnOutsideEntry.Value = CanSpawnOutside;
         DisableOutsideAtNightEntry.Value = DisableOutsideAtNight;
+        MaxPerLevelEntry.Value = MaxPerLevel;
         SpawnPosterInEntry.Value = SpawnPosterIn;
 
         AiTypeEntry.Value = AiType;
@@ -201,6 +204,10 @@ public class CustomConfig : SyncedInstance<CustomConfig> {
             nameof(DisableOutsideAtNight),
             false,
             "If the Rolling Giant will turn off if it is outside at night.");
+        MaxPerLevelEntry = _config.Bind(Name1,
+            nameof(MaxPerLevel),
+            3,
+            "The maximum amount of Rolling Giants that can spawn in a level.");
         SpawnPosterInEntry = _config.Bind(Name1,
             nameof(SpawnPosterIn),
             "Vow:12,March:12,Rend:12,Dine:12,Offense:12,Titan:12",
@@ -305,6 +312,7 @@ public class CustomConfig : SyncedInstance<CustomConfig> {
             CanSpawnInside = CanSpawnInsideEntry.Value;
             CanSpawnOutside = CanSpawnOutsideEntry.Value;
             DisableOutsideAtNight = DisableOutsideAtNightEntry.Value;
+            MaxPerLevel = MaxPerLevelEntry.Value;
             SpawnPosterIn = SpawnPosterInEntry.Value;
 
             AiType = AiTypeEntry.Value;
@@ -343,7 +351,7 @@ public class CustomConfig : SyncedInstance<CustomConfig> {
 
     public static SharedAiSettings GetSharedAiSettings() {
         return new SharedAiSettings {
-            aiType = Instance.AiType,
+            // aiType = Instance.AiType,
             moveSpeed = Instance.MoveSpeed,
             moveAcceleration = Instance.MoveAcceleration,
             moveDeceleration = Instance.MoveDeceleration,
@@ -419,7 +427,10 @@ public class CustomConfig : SyncedInstance<CustomConfig> {
     }
 
     public static void SetCurrentAi() {
-        SharedAiSettings = Instance.AiType switch {
+        if (!NetworkHandler.Instance) return;
+        
+        var aiType = NetworkHandler.AiType;
+        SharedAiSettings = aiType switch {
             RollingGiantAiType.Coilhead => GetSharedAiSettings() with {
                 // canWander = Instance.Coilhead_CanWander,
                 // chaseMaxDistance = Instance.Coilhead_ChaseMaxDistance
@@ -450,6 +461,6 @@ public class CustomConfig : SyncedInstance<CustomConfig> {
             _ => throw new ArgumentOutOfRangeException()
         };
 
-        Plugin.Log.LogInfo($"Current AI type: {SharedAiSettings}");
+        Plugin.Log.LogInfo($"[{aiType}]: {SharedAiSettings}");
     }
 }
