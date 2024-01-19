@@ -12,9 +12,13 @@ namespace RollingGiant;
 public class NetworkHandler : NetworkBehaviour {
     public static NetworkHandler Instance { get; private set; }
     public static RollingGiantAiType AiType => Instance._aiType.Value;
-    private readonly static List<RollingGiantAiType> _aiTypes = Enum.GetValues(typeof(RollingGiantAiType)).Cast<RollingGiantAiType>().ToList();
+    private readonly static List<RollingGiantAiType> _aiTypes = Enum
+        .GetValues(typeof(RollingGiantAiType))
+        .Cast<RollingGiantAiType>()
+        .Take(Enum.GetValues(typeof(RollingGiantAiType)).Length - 1)
+        .ToList();
     
-    private NetworkVariable<RollingGiantAiType> _aiType = new();
+    private NetworkVariable<RollingGiantAiType> _aiType = new(RollingGiantAiType.RandomlyMoveWhileLooking);
 
     private static InputAction _gotoPreviousAiType;
     private static InputAction _gotoNextAiType;
@@ -32,7 +36,7 @@ public class NetworkHandler : NetworkBehaviour {
             if (Instance) {
                 Instance.gameObject.GetComponent<NetworkObject>().Despawn();
             }
-            
+
             _aiType.Value = CustomConfig.AiType.GetFirst();
         }
         Instance = this;
@@ -96,7 +100,7 @@ public class NetworkHandler : NetworkBehaviour {
             // previous ai
             var newAi = _aiTypes.IndexOf(_aiType.Value) - 1;
             if (newAi < 0) {
-                newAi = Enum.GetValues(typeof(RollingGiantAiType)).Length - 1;
+                newAi = _aiTypes.Count - 1;
             }
 
             SetNewAiType(_aiTypes[newAi]);

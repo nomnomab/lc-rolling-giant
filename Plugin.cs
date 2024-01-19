@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -10,7 +11,6 @@ using RollingGiant.Patches;
 using RollingGiant.Settings;
 using UnityEngine;
 using UnityEngine.Pool;
-using Random = UnityEngine.Random;
 
 #if DEBUG
 using System.Diagnostics;
@@ -24,9 +24,9 @@ namespace RollingGiant;
 public class Plugin : BaseUnityPlugin {
     public const string PluginGuid = "nomnomab.rollinggiant";
     public const string PluginName = "Rolling Giant";
-    public const string PluginVersion = "2.3.0";
+    public const string PluginVersion = "2.4.0";
     
-    private const int SaveFileVersion = 5;
+    private const int SaveFileVersion = 9;
 
     public static string PluginDirectory;
     public static CustomConfig CustomConfig { get; private set; }
@@ -195,18 +195,26 @@ public class DebugEditorPatch {
 
 [Flags]
 public enum RollingGiantAiType {
+    [Description("Coilhead AI")]
     Coilhead = 1,
+    [Description("Move when player is looking at it")]
     InverseCoilhead = 2,
+    [Description("Randomly move while the player is looking at it")]
     RandomlyMoveWhileLooking = 4,
+    [Description("If the player looks at it for too long it doesn't stop chasing")]
     LookingTooLongKeepsAgro = 8,
+    [Description("Once the player is noticed, the Rolling Giant will follow the player constantly")]
     FollowOnceAgro = 16,
-    OnceSeenAgroAfterTimer = 32
+    [Description("Once the player sees the Rolling Giant, it will chase the player after a timer")]
+    OnceSeenAgroAfterTimer = 32,
+    [Description("All AI types")]
+    All = Coilhead | InverseCoilhead | RandomlyMoveWhileLooking | LookingTooLongKeepsAgro | FollowOnceAgro | OnceSeenAgroAfterTimer
 }
 
 public static class RollingGiantAiTypeExtensions {
     public static RollingGiantAiType GetFirst(this RollingGiantAiType aiType) {
         var enumTypes = Enum.GetValues(typeof(RollingGiantAiType)).Cast<RollingGiantAiType>().ToArray();
-        for (int i = 0; i < enumTypes.Length; i++) {
+        for (int i = 0; i < enumTypes.Length - 1; i++) {
             var type = enumTypes[i];
             if ((aiType & type) == type) {
                 return type;
@@ -220,7 +228,7 @@ public static class RollingGiantAiTypeExtensions {
     public static RollingGiantAiType GetRandom(this RollingGiantAiType aiType) {
         using var _ = ListPool<RollingGiantAiType>.Get(out var types);
         var enumTypes = Enum.GetValues(typeof(RollingGiantAiType)).Cast<RollingGiantAiType>().ToArray();
-        for (int i = 0; i < enumTypes.Length; i++) {
+        for (int i = 0; i < enumTypes.Length - 1; i++) {
             var type = enumTypes[i];
             if ((aiType & type) == type) {
                 types.Add(type);
@@ -228,11 +236,15 @@ public static class RollingGiantAiTypeExtensions {
         }
 
         var selectedAiType = aiType;
+        var rng = new System.Random(StartOfRound.Instance.randomMapSeed);
+        var index = rng.Next(0, types.Count);
+        // var index = Random.Range(0, types.Count);
         if (types.Count > 1) {
-            selectedAiType = types[Random.Range(0, types.Count)];
+            selectedAiType = types[index];
         } else if (types.Count == 0) {
             // none, so random
-            selectedAiType = enumTypes[Random.Range(1, enumTypes.Length)];
+            // selectedAiType = enumTypes[Random.Range(0, enumTypes.Length - 1)];
+            selectedAiType = enumTypes[rng.Next(0, enumTypes.Length - 1)];
         }
         
         return selectedAiType;

@@ -28,10 +28,6 @@ public class StartOfRoundPatches {
             // select a random ai type
             var aiType = CustomConfig.AiType.GetRandom();
             NetworkHandler.Instance.SetAiType(aiType);
-            // CustomConfig.Instance.AiType = aiType;
-            // Plugin.Log.LogMessage($"Selected ai type: {aiType}");
-            // HUDManager.Instance.DisplayTip("Ai type changed", aiType.ToString());
-            // CustomConfig.RequestSync();
         }
     }
     

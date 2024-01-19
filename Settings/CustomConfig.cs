@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel;
 using BepInEx.Configuration;
 using Unity.Collections;
 using Unity.Netcode;
@@ -17,8 +18,10 @@ public class CustomConfig : SyncedInstance<CustomConfig> {
     public static ConfigEntry<string> GotoNextAiTypeKey { get; private set; }
     public static ConfigEntry<string> ReloadConfigKey { get; private set; }
     public static ConfigEntry<string> SpawnInEntry { get; private set; }
+    public static ConfigEntry<int> SpawnInOutsideChanceEntry { get; private set; }
     public static ConfigEntry<bool> SpawnInAnyEntry { get; private set; }
     public static ConfigEntry<int> SpawnInAnyChanceEntry { get; private set; }
+    public static ConfigEntry<int> SpawnInAnyOutsideChanceEntry { get; private set; }
     public static ConfigEntry<bool> CanSpawnInsideEntry { get; private set; }
     public static ConfigEntry<bool> CanSpawnOutsideEntry { get; private set; }
     public static ConfigEntry<bool> DisableOutsideAtNightEntry { get; private set; }
@@ -27,11 +30,15 @@ public class CustomConfig : SyncedInstance<CustomConfig> {
 
     // general settings
     public const string Name1 = "1. General Settings";
-    public float GiantScaleMin { get; private set; }
-    public float GiantScaleMax { get; private set; }
+    public float GiantScaleInsideMin { get; private set; }
+    public float GiantScaleInsideMax { get; private set; }
+    public float GiantScaleOutsideMin { get; private set; }
+    public float GiantScaleOutsideMax { get; private set; }
     public static string SpawnIn { get; private set; }
+    public static int SpawnInOutsideChance { get; private set; }
     public static bool SpawnInAny { get; private set; }
     public static int SpawnInAnyChance { get; private set; }
+    public static int SpawnInAnyOutsideChance { get; private set; }
     public static bool CanSpawnInside { get; private set; }
     public static bool CanSpawnOutside { get; private set; }
     public static bool DisableOutsideAtNight { get; private set; }
@@ -40,8 +47,9 @@ public class CustomConfig : SyncedInstance<CustomConfig> {
 
     // ai settings
     public const string Name2 = "2. AI Settings";
+
     public const string AiTypeDescription =
-        "The AI type of the Rolling Giant.\n- Putting multiple will randomly choose between them each time you land on a moon\nCoilhead = Coilhead AI\nInverseCoilhead = Move when player is looking at it\nRandomlyMoveWhileLooking = Randomly move while the player is looking at it\nLookingTooLongKeepsAgro = If the player looks at it for too long it doesn't stop chasing\nFollowOnceAgro = Once the player is noticed, the Rolling Giant will follow the player constantly\nOnceSeenAgroAfterTimer = Once the player sees the Rolling Giant, it will chase the player after a timer";
+        "The AI type of the Rolling Giant.\n(Putting multiple will randomly choose between them each time you land on a moon)";
 
     public static RollingGiantAiType AiType { get; internal set; }
 
@@ -58,18 +66,8 @@ public class CustomConfig : SyncedInstance<CustomConfig> {
     public bool RotateToLookAtPlayer { get; private set; }
     public float DelayBeforeLookingAtPlayer { get; private set; }
     public float LookAtPlayerDuration { get; private set; }
-
-    // coilhead ai settings
-    // public bool Coilhead_CanWander { get; private set; }
-    // public float Coilhead_ChaseMaxDistance { get; private set; }
-
-    // inverse coilhead ai settings
-    // public bool InverseCoilhead_CanWander { get; private set; }
-    // public float InverseCoilhead_ChaseMaxDistance { get; private set; }
-
-    // randomly move while looking ai settings
-    // public bool RandomlyMoveWhenLooking_CanWander { get; private set; }
-    // public float RandomlyMoveWhenLooking_ChaseMaxDistance { get; private set; }
+    
+    // random move when looking ai settings
     public float RandomlyMoveWhenLooking_WaitTimeMin { get; private set; }
     public float RandomlyMoveWhenLooking_WaitTimeMax { get; private set; }
     public float RandomlyMoveWhenLooking_RandomMoveTimeMin { get; private set; }
@@ -78,17 +76,15 @@ public class CustomConfig : SyncedInstance<CustomConfig> {
     // looking too long keeps agro ai settings
     public float LookingTooLongKeepsAgro_LookTimeBeforeAgro { get; private set; }
 
-    // follow once agro ai settings
-    // public bool FollowOnceAgro_CanWander { get; private set; }
-    // public float FollowOnceAgro_ChaseMaxDistance { get; private set; }
-
     // once seen agro after timer ai settings
     public float OnceSeenAgroAfterTimer_WaitTimeMin { get; private set; }
     public float OnceSeenAgroAfterTimer_WaitTimeMax { get; private set; }
 
     // binds
-    public static ConfigEntry<float> GiantScaleMinEntry { get; private set; }
-    public static ConfigEntry<float> GiantScaleMaxEntry { get; private set; }
+    public static ConfigEntry<float> GiantScaleInsideMinEntry { get; private set; }
+    public static ConfigEntry<float> GiantScaleInsideMaxEntry { get; private set; }
+    public static ConfigEntry<float> GiantScaleOutsideMinEntry { get; private set; }
+    public static ConfigEntry<float> GiantScaleOutsideMaxEntry { get; private set; }
 
     public static ConfigEntry<RollingGiantAiType> AiTypeEntry { get; private set; }
     public static ConfigEntry<float> MoveSpeedEntry { get; private set; }
@@ -97,24 +93,13 @@ public class CustomConfig : SyncedInstance<CustomConfig> {
     public static ConfigEntry<bool> RotateToLookAtPlayerEntry { get; private set; }
     public static ConfigEntry<float> DelayBeforeLookingAtPlayerEntry { get; private set; }
     public static ConfigEntry<float> LookAtPlayerDurationEntry { get; private set; }
-
-    // public static ConfigEntry<bool> Coilhead_CanWanderEntry { get; private set; }
-    // public static ConfigEntry<float> Coilhead_ChaseMaxDistanceEntry { get; private set; }
-
-    // public static ConfigEntry<bool> InverseCoilhead_CanWanderEntry { get; private set; }
-    // public static ConfigEntry<float> InverseCoilhead_ChaseMaxDistanceEntry { get; private set; }
-
-    // public static ConfigEntry<bool> RandomlyMoveWhenLooking_CanWanderEntry { get; private set; }
-    // public static ConfigEntry<float> RandomlyMoveWhenLooking_ChaseMaxDistanceEntry { get; private set; }
+    
     public static ConfigEntry<float> RandomlyMoveWhenLooking_WaitTimeMinEntry { get; private set; }
     public static ConfigEntry<float> RandomlyMoveWhenLooking_WaitTimeMaxEntry { get; private set; }
     public static ConfigEntry<float> RandomlyMoveWhenLooking_RandomMoveTimeMinEntry { get; private set; }
     public static ConfigEntry<float> RandomlyMoveWhenLooking_RandomMoveTimeMaxEntry { get; private set; }
 
     public static ConfigEntry<float> LookingTooLongKeepsAgro_LookTimeBeforeAgroEntry { get; private set; }
-
-    // public static ConfigEntry<bool> FollowOnceAgro_CanWanderEntry { get; private set; }
-    // public static ConfigEntry<float> FollowOnceAgro_ChaseMaxDistanceEntry { get; private set; }
 
     public static ConfigEntry<float> OnceSeenAgroAfterTimer_WaitTimeMinEntry { get; private set; }
     public static ConfigEntry<float> OnceSeenAgroAfterTimer_WaitTimeMaxEntry { get; private set; }
@@ -133,11 +118,15 @@ public class CustomConfig : SyncedInstance<CustomConfig> {
     }
 
     public void AssignFromSaved() {
-        GiantScaleMinEntry.Value = GiantScaleMin;
-        GiantScaleMaxEntry.Value = GiantScaleMax;
+        GiantScaleInsideMinEntry.Value = GiantScaleInsideMin;
+        GiantScaleInsideMaxEntry.Value = GiantScaleInsideMax;
+        GiantScaleOutsideMinEntry.Value = GiantScaleOutsideMin;
+        GiantScaleOutsideMaxEntry.Value = GiantScaleOutsideMax;
         SpawnInEntry.Value = SpawnIn;
+        SpawnInOutsideChanceEntry.Value = SpawnInAnyOutsideChance;
         SpawnInAnyEntry.Value = SpawnInAny;
         SpawnInAnyChanceEntry.Value = SpawnInAnyChance;
+        SpawnInAnyOutsideChanceEntry.Value = SpawnInAnyOutsideChance;
         CanSpawnInsideEntry.Value = CanSpawnInside;
         CanSpawnOutsideEntry.Value = CanSpawnOutside;
         DisableOutsideAtNightEntry.Value = DisableOutsideAtNight;
@@ -151,15 +140,7 @@ public class CustomConfig : SyncedInstance<CustomConfig> {
         RotateToLookAtPlayerEntry.Value = RotateToLookAtPlayer;
         DelayBeforeLookingAtPlayerEntry.Value = DelayBeforeLookingAtPlayer;
         LookAtPlayerDurationEntry.Value = LookAtPlayerDuration;
-
-        // Coilhead_CanWanderEntry.Value = Coilhead_CanWander;
-        // Coilhead_ChaseMaxDistanceEntry.Value = Coilhead_ChaseMaxDistance;
-
-        // InverseCoilhead_CanWanderEntry.Value = InverseCoilhead_CanWander;
-        // InverseCoilhead_ChaseMaxDistanceEntry.Value = InverseCoilhead_ChaseMaxDistance;
-
-        // RandomlyMoveWhenLooking_CanWanderEntry.Value = RandomlyMoveWhenLooking_CanWander;
-        // RandomlyMoveWhenLooking_ChaseMaxDistanceEntry.Value = RandomlyMoveWhenLooking_ChaseMaxDistance;
+        
         RandomlyMoveWhenLooking_WaitTimeMinEntry.Value = RandomlyMoveWhenLooking_WaitTimeMin;
         RandomlyMoveWhenLooking_WaitTimeMaxEntry.Value = RandomlyMoveWhenLooking_WaitTimeMax;
         RandomlyMoveWhenLooking_RandomMoveTimeMinEntry.Value = RandomlyMoveWhenLooking_RandomMoveTimeMin;
@@ -167,23 +148,25 @@ public class CustomConfig : SyncedInstance<CustomConfig> {
 
         LookingTooLongKeepsAgro_LookTimeBeforeAgroEntry.Value = LookingTooLongKeepsAgro_LookTimeBeforeAgro;
 
-        // FollowOnceAgro_CanWanderEntry.Value = FollowOnceAgro_CanWander;
-        // FollowOnceAgro_ChaseMaxDistanceEntry.Value = FollowOnceAgro_ChaseMaxDistance;
-
         OnceSeenAgroAfterTimer_WaitTimeMinEntry.Value = OnceSeenAgroAfterTimer_WaitTimeMin;
         OnceSeenAgroAfterTimer_WaitTimeMaxEntry.Value = OnceSeenAgroAfterTimer_WaitTimeMax;
     }
 
     public void Reload(bool setValues = true) {
         // general settings
-        // ChanceForGiantEntry =_config.Bind(Name1, nameof(ChanceForGiant), 0.4f, "0.0-1.0: Chance for a Rolling Giant to spawn. Higher means more chances for a Rolling Giant.");
-        GiantScaleMinEntry = _config.Bind(Name1, nameof(GiantScaleMin), 0.9f, "The minimum scale of the Rolling Giant.\nThis changes how small the Giant can be.\nThis is a multiplier, so 0.5 is half as large.");
-        GiantScaleMaxEntry = _config.Bind(Name1, nameof(GiantScaleMax), 1.1f, "The maximum scale of the Rolling Giant.\nThis changes how big the Giant can be.\nThis is a multiplier, so 2 is twice as large.");
+        GiantScaleInsideMinEntry = _config.Bind(Name1, nameof(GiantScaleInsideMin), 0.9f, "The min scale of the Rolling Giant inside.\nThis is a multiplier, so 0.5 is half as large.");
+        GiantScaleInsideMaxEntry = _config.Bind(Name1, nameof(GiantScaleInsideMax), 1.1f, "The max scale of the Rolling Giant inside.\nThis is a multiplier, so 2 is twice as large.");
+        GiantScaleOutsideMinEntry = _config.Bind(Name1, nameof(GiantScaleOutsideMin), 0.9f, "The min scale of the Rolling Giant outside.\nThis is a multiplier, so 0.5 is half as large.");
+        GiantScaleOutsideMaxEntry = _config.Bind(Name1, nameof(GiantScaleOutsideMax), 1.1f, "The max scale of the Rolling Giant outside.\nThis is a multiplier, so 2 is twice as large.");
 
         SpawnInEntry = _config.Bind(Name1,
             nameof(SpawnIn),
             "Vow:45,March:45,Rend:54,Dine:65,Offense:45,Titan:65",
             "Where the Rolling Giant can spawn.\nSeparate each level with a comma, and put a chance (no decimals) separated by a colon.\nVanilla caps at 100, but you can go farther.\nThis chance is also a weight, not a percentage.\nHigher chance = higher chance to get picked\nThe names are what you see in the terminal\nExample: Vow:6,March:10");
+        SpawnInOutsideChanceEntry = _config.Bind(Name1,
+            nameof(SpawnInOutsideChance),
+            45,
+            "The chance for the Rolling Giant to spawn outside.\nIs used alongside SpawnIn.\nThis is a weight, not a percentage.\nHigher chance = higher chance to get picked");
         SpawnInAnyEntry = _config.Bind(Name1,
             nameof(SpawnInAny),
             false,
@@ -192,6 +175,10 @@ public class CustomConfig : SyncedInstance<CustomConfig> {
             nameof(SpawnInAnyChance),
             45,
             "The chance for the Rolling Giant to spawn in any level.\nRequires SpawnInAny to be enabled!\nThis is a weight, not a percentage.\nHigher chance = higher chance to get picked");
+        SpawnInAnyOutsideChanceEntry = _config.Bind(Name1,
+            nameof(SpawnInAnyOutsideChance),
+            45,
+            "The chance for the Rolling Giant to spawn outside when spawning in any level.\nRequires SpawnInAny to be enabled!\nThis is a weight, not a percentage.\nHigher chance = higher chance to get picked");
         CanSpawnInsideEntry = _config.Bind(Name1,
             nameof(CanSpawnInside),
             true,
@@ -227,43 +214,20 @@ public class CustomConfig : SyncedInstance<CustomConfig> {
             "The key to reload the config. Does not update spawn conditions. This uses Unity's New Input System's key-bind names.\nhttps://docs.unity3d.com/Packages/com.unity.inputsystem@1.0/manual/Controls.html#control-paths");
 
         // ai settings
-        AiTypeEntry = _config.Bind(Name2, nameof(AiType), RollingGiantAiType.RandomlyMoveWhileLooking, AiTypeDescription);
+        var aiDescription = AiTypeDescription;
+        foreach (var value in Enum.GetValues(typeof(RollingGiantAiType))) {
+            var attribute = GetAttributeOfType<DescriptionAttribute>((Enum)value);
+            var description = attribute?.Description ?? "No description found.";
+            aiDescription += $"\n{value}: {description}";
+        }
+        AiTypeEntry = _config.Bind(Name2, nameof(AiType), RollingGiantAiType.RandomlyMoveWhileLooking, aiDescription);
         MoveSpeedEntry = _config.Bind(Name2, nameof(MoveSpeed), 6f, MoveSpeedDescription);
         MoveAccelerationEntry = _config.Bind(Name2, nameof(MoveAcceleration), 2f, MoveAccelerationDescription);
         MoveDecelerationEntry = _config.Bind(Name2, nameof(MoveDeceleration), 0.5f, MoveDecelerationDescription);
         RotateToLookAtPlayerEntry = _config.Bind(Name2, nameof(RotateToLookAtPlayer), true, RotateToLookAtPlayerDescription);
         DelayBeforeLookingAtPlayerEntry = _config.Bind(Name2, nameof(DelayBeforeLookingAtPlayer), 2f, DelayBeforeLookingAtPlayerDescription);
         LookAtPlayerDurationEntry = _config.Bind(Name2, nameof(LookAtPlayerDuration), 3f, LookAtPlayerDurationDescription);
-
-        // coilhead ai settings
-        // Coilhead_CanWanderEntry =_config.Bind("AI.Coilhead",
-        //     "CanWander",
-        //     true,
-        //     "If the Rolling Giant can go back to wandering after the player gets far enough away from it.");
-        // Coilhead_ChaseMaxDistanceEntry =_config.Bind("AI.Coilhead",
-        //     "ChaseMaxDistance",
-        //     50f,
-        //     "The distance in meters between the Rolling Giant and the player before it stops chasing and goes back to wandering.");
-
-        // inverse coilhead ai settings
-        // InverseCoilhead_CanWanderEntry =_config.Bind("AI.InverseCoilhead",
-        //     "CanWander",
-        //     true,
-        //     "If the Rolling Giant can go back to wandering after the player gets far enough away from it.");
-        // InverseCoilhead_ChaseMaxDistanceEntry =_config.Bind("AI.InverseCoilhead",
-        //     "ChaseMaxDistance",
-        //     50f,
-        //     "The distance in meters between the Rolling Giant and the player before it stops chasing and goes back to wandering.");
-
-        // randomly move while looking ai settings
-        // RandomlyMoveWhenLooking_CanWanderEntry =_config.Bind("AI.RandomlyMoveWhenLooking",
-        //     "CanWander",
-        //     true,
-        //     "If the Rolling Giant can go back to wandering after the player gets far enough away from it.");
-        // RandomlyMoveWhenLooking_ChaseMaxDistanceEntry =_config.Bind("AI.RandomlyMoveWhenLooking",
-        //     "ChaseMaxDistance",
-        //     50f,
-        //     "The distance in meters between the Rolling Giant and the player before it stops chasing and goes back to wandering.");
+        
         RandomlyMoveWhenLooking_WaitTimeMinEntry = _config.Bind("AI.RandomlyMoveWhenLooking",
             "WaitTimeMin",
             1f,
@@ -280,19 +244,9 @@ public class CustomConfig : SyncedInstance<CustomConfig> {
         // looking too long keeps agro ai settings
         LookingTooLongKeepsAgro_LookTimeBeforeAgroEntry = _config.Bind("AI.LookingTooLongKeepsAgro",
             "LookTimeBeforeAgro",
-            10f,
+            30f,
             "How long the player can look at the Rolling Giant before it starts chasing in seconds.");
-
-        // follow once agro ai settings
-        // FollowOnceAgro_CanWanderEntry =_config.Bind("AI.FollowOnceAgro",
-        //     "CanWander",
-        //     true,
-        //     "If the Rolling Giant can go back to wandering after the player gets far enough away from it.");
-        // FollowOnceAgro_ChaseMaxDistanceEntry =_config.Bind("AI.FollowOnceAgro",
-        //     "ChaseMaxDistance",
-        //     50f,
-        //     "The distance in meters between the Rolling Giant and the player before it stops chasing and goes back to wandering.");
-
+        
         // once seen agro after timer ai settings
         OnceSeenAgroAfterTimer_WaitTimeMinEntry = _config.Bind("AI.OnceSeenAgroAfterTimer",
             "WaitTimeMin",
@@ -304,11 +258,15 @@ public class CustomConfig : SyncedInstance<CustomConfig> {
             "The minimum duration in seconds the Rolling Giant waits before chasing the player.");
 
         if (setValues) {
-            GiantScaleMin = GiantScaleMinEntry.Value;
-            GiantScaleMax = GiantScaleMaxEntry.Value;
+            GiantScaleInsideMin = GiantScaleInsideMinEntry.Value;
+            GiantScaleInsideMax = GiantScaleInsideMaxEntry.Value;
+            GiantScaleOutsideMin = GiantScaleOutsideMinEntry.Value;
+            GiantScaleOutsideMax = GiantScaleOutsideMaxEntry.Value;
             SpawnIn = SpawnInEntry.Value;
+            SpawnInOutsideChance = SpawnInOutsideChanceEntry.Value;
             SpawnInAny = SpawnInAnyEntry.Value;
             SpawnInAnyChance = SpawnInAnyChanceEntry.Value;
+            SpawnInAnyOutsideChance = SpawnInAnyOutsideChanceEntry.Value;
             CanSpawnInside = CanSpawnInsideEntry.Value;
             CanSpawnOutside = CanSpawnOutsideEntry.Value;
             DisableOutsideAtNight = DisableOutsideAtNightEntry.Value;
@@ -322,15 +280,7 @@ public class CustomConfig : SyncedInstance<CustomConfig> {
             RotateToLookAtPlayer = RotateToLookAtPlayerEntry.Value;
             DelayBeforeLookingAtPlayer = DelayBeforeLookingAtPlayerEntry.Value;
             LookAtPlayerDuration = LookAtPlayerDurationEntry.Value;
-
-            // Coilhead_CanWander = Coilhead_CanWanderEntry.Value;
-            // Coilhead_ChaseMaxDistance = Coilhead_ChaseMaxDistanceEntry.Value;
-            //
-            // InverseCoilhead_CanWander = InverseCoilhead_CanWanderEntry.Value;
-            // InverseCoilhead_ChaseMaxDistance = InverseCoilhead_ChaseMaxDistanceEntry.Value;
-            //
-            // RandomlyMoveWhenLooking_CanWander = RandomlyMoveWhenLooking_CanWanderEntry.Value;
-            // RandomlyMoveWhenLooking_ChaseMaxDistance = RandomlyMoveWhenLooking_ChaseMaxDistanceEntry.Value;
+            
             RandomlyMoveWhenLooking_WaitTimeMin = RandomlyMoveWhenLooking_WaitTimeMinEntry.Value;
             RandomlyMoveWhenLooking_WaitTimeMax = RandomlyMoveWhenLooking_WaitTimeMaxEntry.Value;
             RandomlyMoveWhenLooking_RandomMoveTimeMin = RandomlyMoveWhenLooking_RandomMoveTimeMinEntry.Value;
@@ -338,15 +288,19 @@ public class CustomConfig : SyncedInstance<CustomConfig> {
 
             LookingTooLongKeepsAgro_LookTimeBeforeAgro = LookingTooLongKeepsAgro_LookTimeBeforeAgroEntry.Value;
 
-            // FollowOnceAgro_CanWander = FollowOnceAgro_CanWanderEntry.Value;
-            // FollowOnceAgro_ChaseMaxDistance = FollowOnceAgro_ChaseMaxDistanceEntry.Value;
-
             OnceSeenAgroAfterTimer_WaitTimeMin = OnceSeenAgroAfterTimer_WaitTimeMinEntry.Value;
             OnceSeenAgroAfterTimer_WaitTimeMax = OnceSeenAgroAfterTimer_WaitTimeMaxEntry.Value;
             SetCurrentAi();
         }
 
         Plugin.Log.LogInfo("Config reloaded.");
+    }
+
+    private static T GetAttributeOfType<T>(Enum enumVal) where T : Attribute {
+        var type = enumVal.GetType();
+        var memInfo = type.GetMember(enumVal.ToString());
+        var attributes = memInfo[0].GetCustomAttributes(typeof(T), false);
+        return (attributes.Length > 0) ? (T)attributes[0] : null;
     }
 
     public static SharedAiSettings GetSharedAiSettings() {
@@ -371,15 +325,6 @@ public class CustomConfig : SyncedInstance<CustomConfig> {
         MessageManager.SendNamedMessage(ROLLINGGIANT_ONREQUESTCONFIGSYNC, 0uL, stream);
         Plugin.Log.LogInfo("Config sync request sent.");
     }
-
-    // public static void RequestFullSync() {
-    //     if (!IsHost) return;
-    //     using FastBufferWriter stream = new(IntSize, Allocator.Temp);
-    //     foreach (var client in NetworkManager.Singleton.ConnectedClientsList) {
-    //         MessageManager.SendNamedMessage(ROLLINGGIANT_ONREQUESTCONFIGSYNC, client.ClientId, stream);
-    //     }
-    //     Plugin.Log.LogInfo("Config sync request sent.");
-    // }
 
     public static void OnRequestSync(ulong clientId, FastBufferReader _) {
         if (!IsHost) {
@@ -428,7 +373,6 @@ public class CustomConfig : SyncedInstance<CustomConfig> {
 
     public static void SetCurrentAi() {
         if (!NetworkHandler.Instance) return;
-        
         var aiType = NetworkHandler.AiType;
         SharedAiSettings = aiType switch {
             RollingGiantAiType.Coilhead => GetSharedAiSettings() with {

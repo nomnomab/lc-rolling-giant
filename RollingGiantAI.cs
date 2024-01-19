@@ -15,10 +15,15 @@ public class RollingGiantAI : EnemyAI {
    [SerializeField] private AudioClip[] _stopNoises;
 #pragma warning restore 649
 
+   private static RollingGiantAiType _aiType => NetworkHandler.AiType;
    private static SharedAiSettings _sharedAiSettings => CustomConfig.SharedAiSettings;
    
    private AudioSource _rollingSFX;
-   private NetworkVariable<float> _velocity = new();
+   private NetworkVariable<float> _velocity = new(writePerm: NetworkVariableWritePermission.Owner);
+   private NetworkVariable<float> _waitTimer = new(writePerm: NetworkVariableWritePermission.Owner);
+   private NetworkVariable<float> _moveTimer = new(writePerm: NetworkVariableWritePermission.Owner);
+   private NetworkVariable<float> _lookTimer = new(writePerm: NetworkVariableWritePermission.Owner);
+   private NetworkVariable<float> _agroTimer = new(writePerm: NetworkVariableWritePermission.Owner);
 
    private float _timeSinceHittingPlayer;
    private bool _wantsToChaseThisClient;
@@ -27,13 +32,14 @@ public class RollingGiantAI : EnemyAI {
    private bool _wasFeared;
    private bool _isAgro;
    private float _lastSpeed;
-   private float _audioFade;
+   // private float _audioFade;
 
-   private float _waitTimer;
-   private float _moveTimer;
-   private float _lookTimer;
-   private float _agroTimer;
-   private float _springVelocity;
+   // private float _waitTimer;
+   // private float _moveTimer;
+   // private float _lookTimer;
+   // private float _agroTimer;
+   // private float _springVelocity;
+   private bool _tooBig;
 
    private static float NextDouble() {
       if (!RoundManager.Instance || RoundManager.Instance.LevelRandom == null) {
@@ -47,7 +53,7 @@ public class RollingGiantAI : EnemyAI {
    public override void Start() {
       base.Start();
       
-      Init();
+      Init(transform.localScale.x);
       
       if (IsHost || IsOwner) {
          AssignInitData_LocalClient();
@@ -56,7 +62,7 @@ public class RollingGiantAI : EnemyAI {
       Plugin.Log.LogInfo($"Rolling giant spawned with ai type: {NetworkHandler.AiType}, owner? {IsOwner}");
    }
 
-   private void Init() {
+   private void Init(float scale) {
       agent = gameObject.GetComponentInChildren<NavMeshAgent>();
       _rollingSFX = transform.Find("RollingSFX").GetComponent<AudioSource>();
       
@@ -68,12 +74,17 @@ public class RollingGiantAI : EnemyAI {
       _rollingSFX.loop = true;
       _rollingSFX.clip = Plugin.WalkSound;
       var time = NextDouble() * Plugin.WalkSound.length;
-      var pitch = Mathf.Lerp(0.96f, 1.05f, NextDouble());
+      // var pitch = Mathf.Lerp(0.96f, 1.05f, NextDouble());
       _rollingSFX.time = time;
-      _rollingSFX.pitch = pitch;
+      _rollingSFX.pitch = Mathf.Lerp(1.1f, 0.8f, Mathf.InverseLerp(0.9f, 1.2f, scale));
       _rollingSFX.volume = 0;
       _rollingSFX.Play();
       
+      isOutside = enemyType.isOutsideEnemy || enemyType.isDaytimeEnemy;
+      if (isOutside) {
+         allAINodes = GameObject.FindGameObjectsWithTag("OutsideAINode");
+      }
+
       // Plugin.Log.LogInfo($"[Init::{_sharedAiSettings.aiType}] _rollingSFX.time: {_rollingSFX.time}, _rollingSFX.pitch: {_rollingSFX.pitch}, _rollingSFX.volume: {_rollingSFX.volume}");
    }
 
@@ -105,26 +116,30 @@ public class RollingGiantAI : EnemyAI {
                ChangeOwnershipOfEnemy(StartOfRound.Instance.allPlayerScripts[0].actualClientId);
                break;
             }
+   
+            if (!_searchForPlayers.inProgress) {
+               StartSearch(transform.position, _searchForPlayers);
+               // Plugin.Log.LogInfo($"[DoAIInterval::{NetworkHandler.AiType}] StartSearch({transform.position}, _searchForPlayers)");
+               return;
+            }
 
-            for (int i = 0; i < StartOfRound.Instance.allPlayerScripts.Length; i++) {
-               var player = StartOfRound.Instance.allPlayerScripts[i];
-               if (PlayerIsTargetable(player, overrideInsideFactoryCheck: isOutside) &&
-                   !Physics.Linecast(transform.position + Vector3.up * 0.5f,
-                      player.gameplayCamera.transform.position,
-                      StartOfRound.Instance.collidersAndRoomMaskAndDefault) && Vector3.Distance(transform.position, player.transform.position) < 30.0) {
+            foreach (var player in StartOfRound.Instance.allPlayerScripts) {
+               if (player.isPlayerDead) continue;
+               if (!player.IsSpawned) continue;
+               if (!isOutside != player.isInsideFactory) continue;
+               
+               // if (PlayerIsTargetable(player, overrideInsideFactoryCheck: isOutside) &&
+               if (!isOutside && !PlayerIsTargetable(player)) continue;
+
+               var distance = Vector3.Distance(transform.position, player.transform.position);
+               var inRange = distance < (isOutside ? 90 : 30);
+               if (Physics.Linecast(transform.position + Vector3.up * 0.5f, player.gameplayCamera.transform.position, StartOfRound.Instance.collidersAndRoomMaskAndDefault) && inRange) {
                   SwitchToBehaviourState(1);
-                  // Plugin.Log.LogInfo($"[DoAIInterval::{NetworkHandler.AiType}] SwitchToBehaviourState(1)");
+                  // Plugin.Log.LogInfo($"[DoAIInterval::{NetworkHandler.AiType}] SwitchToBehaviourState(1), found {player?.playerUsername} at distance {distance}m");
                   return;
                }
             }
-   
-            if (_searchForPlayers.inProgress) {
-               break;
-            }
-   
-            // start a search to find a player...
-            StartSearch(transform.position, _searchForPlayers);
-            // Plugin.Log.LogInfo($"[DoAIInterval::{NetworkHandler.AiType}] StartSearch({transform.position}, _searchForPlayers)");
+            
             break;
          // chasing
          case 1:
@@ -150,7 +165,7 @@ public class RollingGiantAI : EnemyAI {
             // stop the current search as we found a player!
             StopSearch(_searchForPlayers);
             movingTowardsTargetPlayer = true;
-            // Plugin.Log.LogInfo($"[DoAIInterval::{NetworkHandler.AiType}] StopSearch(_searchForPlayers)");
+            // Plugin.Log.LogInfo($"[DoAIInterval::{NetworkHandler.AiType}] StopSearch(_searchForPlayers), found {targetPlayer?.playerUsername}");
             break;
       }
    }
@@ -183,7 +198,12 @@ public class RollingGiantAI : EnemyAI {
       var speed = _velocity.Value;
       // Plugin.Log.LogInfo($"[Update::{NetworkHandler.AiType}] speed: {speed}/{_sharedAiSettings.moveSpeed}, moveTowardsDestination: {moveTowardsDestination}: movingTowardsTargetPlayer: {movingTowardsTargetPlayer}, onNavmesh: {agent.isOnNavMesh}, isActiveAndEnabled: {agent.isActiveAndEnabled}");
       // Plugin.Log.LogInfo($"[Update::{NetworkHandler.AiType}] speed: {speed}/{_sharedAiSettings.moveSpeed}, _rollingSFX.volume: {_rollingSFX.volume}");
-      _rollingSFX.volume = Mathf.Lerp(0, Mathf.Clamp01(ROAMING_AUDIO_PERCENT * speed + 0.05f), speed / _sharedAiSettings.moveSpeed);
+      if (speed > 0.1f) {
+         _rollingSFX.volume = Mathf.Lerp(0, Mathf.Clamp01(ROAMING_AUDIO_PERCENT * speed + 0.05f), speed / _sharedAiSettings.moveSpeed);
+      } else {
+         _rollingSFX.volume = Mathf.Lerp(_rollingSFX.volume, 0, Time.deltaTime);
+      }
+
       // if (_wasStopped) {
       //    _audioFade -= Time.deltaTime;
       //    _audioFade = Mathf.Clamp01(_audioFade);
@@ -230,20 +250,26 @@ public class RollingGiantAI : EnemyAI {
                _wantsToChaseThisClient = false;
                _wasStopped = false;
                _wasFeared = false;
-               _isAgro = false;
-               _agroTimer = 0;
-               _waitTimer = 0;
-               _moveTimer = 0;
-               _lookTimer = 0;
-               _springVelocity = 0;
-               agent.stoppingDistance = 0;
-               agent.speed = _sharedAiSettings.moveSpeed;
-               agent.acceleration = 200;
+               if (_aiType is not RollingGiantAiType.OnceSeenAgroAfterTimer) {
+                  _isAgro = false;
+                  if (IsOwner) {
+                     _agroTimer.Value = 0;
+                  }
+               }
+               if (IsOwner) {
+                  _waitTimer.Value = 0;
+                  _moveTimer.Value = 0;
+                  _lookTimer.Value = 0;
+               }
+               // _springVelocity = 0;
+               // agent.stoppingDistance = 0;
+               // agent.speed = _sharedAiSettings.moveSpeed;
+               // agent.acceleration = 200;
             }
             
             if (IsOwner) {
                //if (AmIInRangeOfAPlayer(out var closestPlayer) && closestPlayer == localPlayer) {
-               if (TargetClosestPlayer(requireLineOfSight: true) && targetPlayer == localPlayer) {
+               if (base.TargetClosestPlayer(requireLineOfSight: true) && targetPlayer == localPlayer) {
                   if (_wantsToChaseThisClient) {
                      break;
                   }
@@ -266,15 +292,21 @@ public class RollingGiantAI : EnemyAI {
                _wantsToChaseThisClient = false;
                _wasStopped = false;
                _wasFeared = false;
-               _isAgro = false;
-               _agroTimer = 0;
-               _waitTimer = 0;
-               _moveTimer = 0;
-               _lookTimer = 0;
-               _springVelocity = 0;
-               agent.stoppingDistance = 0;
-               agent.speed = 0;
-               agent.acceleration = 200;
+               if (_aiType is not RollingGiantAiType.OnceSeenAgroAfterTimer) {
+                  _isAgro = false;
+                  if (IsOwner) {
+                     _agroTimer.Value = 0;
+                  }
+               }
+               if (IsOwner) {
+                  _waitTimer.Value = 0;
+                  _moveTimer.Value = 0;
+                  _lookTimer.Value = 0;
+               }
+               // _springVelocity = 0;
+               // agent.stoppingDistance = 0;
+               // agent.speed = 0;
+               // agent.acceleration = 200;
             }
    
             if (stunNormalizedTimer > 0) {
@@ -292,7 +324,7 @@ public class RollingGiantAI : EnemyAI {
                }
                
                if (_wasStopped && _sharedAiSettings.rotateToLookAtPlayer) {
-                  if (_lookTimer >= _sharedAiSettings.delayBeforeLookingAtPlayer) {
+                  if (_lookTimer.Value >= _sharedAiSettings.delayBeforeLookingAtPlayer) {
                      // rotate visuals to look at player
                      var lookAt = targetPlayer.transform.position;
                      var position = transform.position;
@@ -325,13 +357,13 @@ public class RollingGiantAI : EnemyAI {
                   }
                   break;
                case RollingGiantAiType.RandomlyMoveWhileLooking:
-                  if (AmIBeingLookedAt(out _) && _moveTimer <= 0) {
+                  if (AmIBeingLookedAt(out _) && _moveTimer.Value <= 0) {
                      _wasStopped = true;
                      return;
                   }
                   break;
                case RollingGiantAiType.LookingTooLongKeepsAgro:
-                  if (AmIBeingLookedAt(out _) && _agroTimer < _sharedAiSettings.lookTimeBeforeAgro) {
+                  if (AmIBeingLookedAt(out _) && _agroTimer.Value < 1f) {
                      _wasStopped = true;
                      return;
                   }
@@ -340,7 +372,7 @@ public class RollingGiantAI : EnemyAI {
                   // ?
                   break;
                case RollingGiantAiType.OnceSeenAgroAfterTimer:
-                  if (_isAgro && _waitTimer >= 0) {
+                  if (_isAgro && _agroTimer.Value <= 0) {
                      _wasStopped = true;
                      return;
                   }
@@ -360,7 +392,7 @@ public class RollingGiantAI : EnemyAI {
    
             SetMovingTowardsTargetPlayer(targetPlayer);
             ChangeOwnershipOfEnemy(targetPlayer.actualClientId);
-            // Plugin.Log.LogInfo($"[Update::{NetworkHandler.AiType}] SetMovingTowardsTargetPlayer({targetPlayer?.playerUsername})");
+            // Plugin.Log.LogInfo($"[Update::{NetworkHandler.AiType}] SetMovingTowardsTargetPlayer, player {targetPlayer?.playerUsername}");
          }
             break;
       }
@@ -371,22 +403,45 @@ public class RollingGiantAI : EnemyAI {
       mostOptimalDistance = 2000f;
       var targetPlayer = this.targetPlayer;
       this.targetPlayer = null;
-      for (int index = 0; index < StartOfRound.Instance.connectedPlayersAmount + 1; ++index) {
-         var player = StartOfRound.Instance.allPlayerScripts[index];
-         if (PlayerIsTargetable(player, overrideInsideFactoryCheck: isOutside) &&
-             !PathIsIntersectedByLineOfSight(player.transform.position, avoidLineOfSight: false) && (!requireLineOfSight || HasLineOfSightToPosition(player.gameplayCamera.transform.position, viewWidth, 40))) {
-            tempDist = Vector3.Distance(transform.position, StartOfRound.Instance.allPlayerScripts[index].transform.position);
-            if (tempDist < (double)mostOptimalDistance) {
-               mostOptimalDistance = tempDist;
-               this.targetPlayer = StartOfRound.Instance.allPlayerScripts[index];
+      for (int i = 0; i < StartOfRound.Instance.connectedPlayersAmount + 1; ++i) {
+         var player = StartOfRound.Instance.allPlayerScripts[i];
+         if (player.isPlayerDead) continue;
+         if (!player.IsSpawned) continue;
+         
+         var position = player.transform.position;
+         var pathIsIntersectedByLineOfSight = PathIsIntersectedByLineOfSight(position, avoidLineOfSight: false);
+         if (pathIsIntersectedByLineOfSight) {
+            // get closest navmesh point
+            var closestNode = ChooseClosestNodeToPosition(player.transform.position, avoidLineOfSight: false);
+            if (closestNode) {
+               position = closestNode.position;
+               pathIsIntersectedByLineOfSight = PathIsIntersectedByLineOfSight(position, avoidLineOfSight: false);
             }
          }
+         
+         // ? this gets modified above so this is resetting it otherwise it is too low
+         mostOptimalDistance = 2000f;
+         var hasLineOfSightToPosition = HasLineOfSightToPosition(player.gameplayCamera.transform.position, viewWidth, 2000);
+         if (!pathIsIntersectedByLineOfSight && (!requireLineOfSight || hasLineOfSightToPosition)) {
+            tempDist = Vector3.Distance(transform.position, StartOfRound.Instance.allPlayerScripts[i].transform.position);
+            if (tempDist < (double)mostOptimalDistance) {
+               // Plugin.Log.LogInfo($"[TargetClosestPlayer::{NetworkHandler.AiType}] [{i}] ({player?.playerUsername}) tempDist: {tempDist}, mostOptimalDistance: {mostOptimalDistance}");
+               mostOptimalDistance = tempDist;
+               this.targetPlayer = StartOfRound.Instance.allPlayerScripts[i];
+            } else {
+               // Plugin.Log.LogInfo($"[TargetClosestPlayer::{NetworkHandler.AiType}] [{i}] ({player?.playerUsername}) tempDist: {tempDist}, mostOptimalDistance: {mostOptimalDistance}");
+            }
+         } else {
+            // Plugin.Log.LogInfo($"[TargetClosestPlayer::{NetworkHandler.AiType}] [{i}] ({player?.playerUsername}) pathIsIntersectedByLineOfSight: {pathIsIntersectedByLineOfSight}, hasLineOfSightToPosition: {hasLineOfSightToPosition}");
+         }
       }
-
-      if (this.targetPlayer && bufferDistance > 0.0 && targetPlayer && Mathf.Abs(mostOptimalDistance - Vector3.Distance(transform.position, targetPlayer.transform.position)) < (double)bufferDistance) {
+   
+      if (this.targetPlayer && this.targetPlayer != targetPlayer && bufferDistance > 0.0 && targetPlayer && Mathf.Abs(mostOptimalDistance - Vector3.Distance(transform.position, targetPlayer.transform.position)) < (double)bufferDistance) {
          this.targetPlayer = targetPlayer;
+      } else if (this.targetPlayer != targetPlayer) {
+         // Plugin.Log.LogInfo($"[TargetClosestPlayer::{NetworkHandler.AiType}] this.targetPlayer: {this.targetPlayer?.playerUsername}, targetPlayer: {targetPlayer?.playerUsername}, mostOptimalDistance: {mostOptimalDistance}, bufferDistance: {bufferDistance}, distance: {(targetPlayer ? Vector3.Distance(transform.position, targetPlayer.transform.position) : -1)}");
       }
-
+   
       return this.targetPlayer;
    }
 
@@ -407,6 +462,10 @@ public class RollingGiantAI : EnemyAI {
       var player = MeetsStandardPlayerCollisionConditions(other);
       if (!player) return;
 
+      if (_tooBig && player.isInHangarShipRoom) {
+         return;
+      }
+
       _timeSinceHittingPlayer = 0.2f;
       var index = StartOfRound.Instance.playerRagdolls.IndexOf(Plugin.PlayerRagdoll);
       player.DamagePlayer(90, causeOfDeath: CauseOfDeath.Strangulation, deathAnimation: index);
@@ -424,25 +483,24 @@ public class RollingGiantAI : EnemyAI {
 
       // searching
       if (currentBehaviourStateIndex == 0) {
-         agent.speed = _sharedAiSettings.moveAcceleration == 0
-            ? _sharedAiSettings.moveSpeed
-            : Mathf.Lerp(agent.speed, _sharedAiSettings.moveSpeed, Time.deltaTime / _sharedAiSettings.moveAcceleration);
-         agent.acceleration = 200;
+         MoveAccelerate();
       }
       // chasing
       else if (currentBehaviourStateIndex == 1) {
          // if not on the ground, accelerate to reach it
-         if (!IsAgentOnNavMesh(agent.gameObject)) {
+         if (IsOwner && !IsAgentOnNavMesh(agent.gameObject)) {
             MoveAccelerate();
             // Plugin.Log.LogInfo($"[CalculateAgentSpeed::{NetworkHandler.AiType}] not on navmesh");
             return;
          }
 
          var isLookedAt = AmIBeingLookedAt(out _);
-         if (isLookedAt) {
-            _lookTimer += Time.deltaTime;
-         } else {
-            _lookTimer = 0;
+         if (IsOwner) {
+            if (isLookedAt) {
+               _lookTimer.Value += Time.deltaTime;
+            } else {
+               _lookTimer.Value = 0;
+            }
          }
 
          var aiType = NetworkHandler.AiType;
@@ -468,15 +526,17 @@ public class RollingGiantAI : EnemyAI {
                break;
             case RollingGiantAiType.RandomlyMoveWhileLooking:
                if (isLookedAt) {
-                  if (_waitTimer <= 0 && _moveTimer <= 0) {
+                  if (_waitTimer.Value <= 0 && _moveTimer.Value <= 0) {
                      GenerateWaitTime_LocalClient();
                   }
 
-                  if (_waitTimer > 0 && _moveTimer <= 0) {
+                  if (_waitTimer.Value > 0 && _moveTimer.Value <= 0) {
                      MoveDecelerate();
 
-                     _waitTimer -= Time.deltaTime;
-                     if (_waitTimer <= 0) {
+                     if (IsOwner) {
+                        _waitTimer.Value -= Time.deltaTime;
+                     }
+                     if (_waitTimer.Value <= 0) {
                         GenerateMoveTime_LocalClient();
                      }
                      return;
@@ -485,9 +545,11 @@ public class RollingGiantAI : EnemyAI {
 
                MoveAccelerate();
 
-               if (_moveTimer > 0) {
-                  _moveTimer -= Time.deltaTime;
-                  if (_moveTimer <= 0) {
+               if (_moveTimer.Value > 0) {
+                  if (IsOwner) {
+                     _moveTimer.Value -= Time.deltaTime;
+                  }
+                  if (_moveTimer.Value <= 0) {
                      GenerateWaitTime_LocalClient();
                   }
                }
@@ -495,15 +557,23 @@ public class RollingGiantAI : EnemyAI {
             case RollingGiantAiType.LookingTooLongKeepsAgro:
                if (!_isAgro) {
                   if (isLookedAt) {
-                     _agroTimer = Mathf.SmoothDamp(_agroTimer, _sharedAiSettings.lookTimeBeforeAgro + 0.5f, ref _springVelocity, 0.5f);
-                     // Plugin.Log.LogInfo($"[Update::{_sharedAiSettings.aiType}] _lookTimer: {_agroTimer}");
-                     if (_agroTimer >= _sharedAiSettings.lookTimeBeforeAgro) {
+                     if (IsOwner) {
+                        _agroTimer.Value += Time.deltaTime / _sharedAiSettings.lookTimeBeforeAgro;
+                     }
+                     // Plugin.Log.LogInfo($"[Update::{NetworkHandler.AiType}] _lookTimer: {_agroTimer.Value}");
+                     if (_agroTimer.Value >= 1f) {
                         _isAgro = true;
+                        // Plugin.Log.LogInfo($"[Update::{NetworkHandler.AiType}] got agro");
                      }
 
                      MoveDecelerate();
                   } else {
-                     _agroTimer = Mathf.Lerp(_agroTimer, 0, Time.deltaTime / (_sharedAiSettings.lookTimeBeforeAgro / 2f));
+                     if (IsOwner) {
+                        _agroTimer.Value = Mathf.Lerp(_agroTimer.Value, 0, Time.deltaTime / (_sharedAiSettings.lookTimeBeforeAgro * 1.5f));
+                        // Plugin.Log.LogInfo($"[Update::{NetworkHandler.AiType}] _lookTimer: {_agroTimer.Value}");
+                     }
+
+                     MoveAccelerate();
                   }
                   return;
                }
@@ -515,7 +585,7 @@ public class RollingGiantAI : EnemyAI {
                   if (isLookedAt) {
                      _isAgro = true;
                      MoveDecelerate();
-                     // Plugin.Log.LogInfo($"[Update::{_sharedAiSettings.aiType}] got agro");
+                     // Plugin.Log.LogInfo($"[Update::{NetworkHandler.AiType}] got agro");
                      return;
                   }
                }
@@ -526,19 +596,23 @@ public class RollingGiantAI : EnemyAI {
                if (!_isAgro) {
                   if (isLookedAt) {
                      _isAgro = true;
-                     // Plugin.Log.LogInfo($"[Update::{_sharedAiSettings.aiType}] got agro");
-                     GenerateWaitTime_LocalClient();
+                     // Plugin.Log.LogInfo($"[Update::{NetworkHandler.AiType}] got agro");
+                     if (IsOwner) {
+                        _agroTimer.Value = Mathf.Lerp(_sharedAiSettings.waitTimeMin, _sharedAiSettings.waitTimeMax, NextDouble());
+                     }
                      MoveDecelerate();
                   }
                   return;
                }
 
-               if (_waitTimer >= 0) {
-                  // Plugin.Log.LogInfo($"[Update::{_sharedAiSettings.aiType}] _waitTimer: {_waitTimer}");
-                  _waitTimer -= Time.deltaTime;
+               if (_agroTimer.Value >= 0) {
+                  // Plugin.Log.LogInfo($"[Update::{NetworkHandler.AiType}] _agroTimer: {_agroTimer.Value}");
+                  if (IsOwner) {
+                     _agroTimer.Value -= Time.deltaTime;
+                  }
 
-                  if (_waitTimer < 0) {
-                     // Plugin.Log.LogInfo($"[Update::{_sharedAiSettings.aiType}] chasing time");
+                  if (_agroTimer.Value < 0) {
+                     // Plugin.Log.LogInfo($"[Update::{NetworkHandler.AiType}] chasing time");
                   }
                   MoveDecelerate();
                   return;
@@ -572,10 +646,13 @@ public class RollingGiantAI : EnemyAI {
       closestPlayer = null;
 
       foreach (var player in players) {
-         if (!PlayerIsTargetable(player, overrideInsideFactoryCheck: isOutside)) {
-            // Plugin.Log.LogInfo($"[AmIBeingLookedAt::{NetworkHandler.AiType}] !PlayerIsTargetable({player?.playerUsername})");
-            continue;
-         }
+         if (!isOutside && !PlayerIsTargetable(player)) continue;
+         if (player.isPlayerDead) continue;
+         if (!player.IsSpawned) continue;
+         // if (!PlayerIsTargetable(player, overrideInsideFactoryCheck: isOutside)) {
+         //    // Plugin.Log.LogInfo($"[AmIBeingLookedAt::{NetworkHandler.AiType}] !PlayerIsTargetable({player?.playerUsername})");
+         //    continue;
+         // }
          // transform.position + Vector3.up * 1.6f
          if (player.HasLineOfSightToPosition(transform.position + Vector3.up * 1.6f, 68f)) {
             var distance = Vector3.Distance(transform.position, player.transform.position);
@@ -659,39 +736,36 @@ public class RollingGiantAI : EnemyAI {
 
    [ServerRpc(RequireOwnership = false)]
    private void GenerateWaitTime_ServerRpc(float waitTime) {
-      _waitTimer = waitTime;
-      // Plugin.Log.LogInfo($"[GenerateWaitTime_ServerRpc::{_sharedAiSettings.aiType}] _waitTimer: {_waitTimer}");
+      _waitTimer.Value = waitTime;
    }
    
    private void GenerateWaitTime_LocalClient() {
       var waitTime = Mathf.Lerp(_sharedAiSettings.waitTimeMin, _sharedAiSettings.waitTimeMax, NextDouble());
-      _waitTimer = waitTime;
       GenerateWaitTime_ServerRpc(waitTime);
-      // Plugin.Log.LogInfo($"[GenerateWaitTime_LocalClient::{_sharedAiSettings.aiType}] _waitTimer: {_waitTimer}");
    }
-
+   
+   [ServerRpc(RequireOwnership = false)]
+   private void GenerateAgroTime_ServerRpc(float agroTime) {
+      _agroTimer.Value = agroTime;
+   }
+   
+   private void GenerateAgroTime_LocalClient() {
+      GenerateWaitTime_ServerRpc(_sharedAiSettings.lookTimeBeforeAgro);
+   }
+   
    [ServerRpc(RequireOwnership = false)]
    private void GenerateMoveTime_ServerRpc(float moveTime) {
-      _moveTimer = moveTime;
-      GenerateMoveTime_ClientRpc(moveTime);
-      // Plugin.Log.LogInfo($"[GenerateMoveTime_ServerRpc::{_sharedAiSettings.aiType}] _moveTimer: {_moveTimer}");
+      _moveTimer.Value = moveTime;
    }
    
    private void GenerateMoveTime_LocalClient() {
       var moveTime = Mathf.Lerp(_sharedAiSettings.randomMoveTimeMin, _sharedAiSettings.randomMoveTimeMax, NextDouble());
-      _moveTimer = moveTime;
       GenerateMoveTime_ServerRpc(moveTime);
-      // Plugin.Log.LogInfo($"[GenerateMoveTime_LocalClient::{_sharedAiSettings.aiType}] _moveTimer: {_moveTimer}");
-   }
-   
-   [ClientRpc]
-   private void GenerateMoveTime_ClientRpc(float moveTime) {
-      _moveTimer = moveTime;
-      // Plugin.Log.LogInfo($"[GenerateMoveTime_ClientRpc::{_sharedAiSettings.aiType}] _moveTimer: {_moveTimer}");
    }
 
    [ServerRpc(RequireOwnership = false)]
    private void AssignInitData_ServerRpc(float scale) {
+      AssignAgentData(scale);
       agent.transform.localScale = Vector3.one * scale;
       AssignInitData_ClientRpc(scale);
       // Plugin.Log.LogInfo($"[AssignInitData_ServerRpc::{_sharedAiSettings.aiType}] agent.transform.localScale: {agent.transform.localScale}");
@@ -699,16 +773,35 @@ public class RollingGiantAI : EnemyAI {
    
    private void AssignInitData_LocalClient() {
       var config = CustomConfig.Instance;
-      var modelScale = Mathf.Lerp(config.GiantScaleMin, config.GiantScaleMax, NextDouble());
-      agent.transform.localScale = Vector3.one * modelScale;
-      AssignInitData_ServerRpc(modelScale);
+      var sizeRange = isOutside ? new Vector2(config.GiantScaleOutsideMin, config.GiantScaleOutsideMax) : new Vector2(config.GiantScaleInsideMin, config.GiantScaleInsideMax);
+      var scale = Mathf.Lerp(sizeRange.x, sizeRange.y, NextDouble());
+      AssignAgentData(scale);
+      agent.transform.localScale = Vector3.one * scale;
+      AssignInitData_ServerRpc(scale);
       // Plugin.Log.LogInfo($"[AssignInitData_LocalClient::{_sharedAiSettings.aiType}] agent.transform.localScale: {agent.transform.localScale}");
    }
 
    [ClientRpc]
    private void AssignInitData_ClientRpc(float scale) {
-      Init();
+      // agent.height = 5f;
+      updatePositionThreshold = float.MaxValue;
+      AssignAgentData(scale);
       agent.transform.localScale = Vector3.one * scale;
+      
       // Plugin.Log.LogInfo($"[AssignInitData_ClientRpc::{_sharedAiSettings.aiType}] agent.transform.localScale: {agent.transform.localScale}");
+   }
+
+   private void AssignAgentData(float scale) {
+      Init(scale);
+      if (scale >= 1.2f) {
+         var areas = agent.areaMask;
+         // var exclude = 1 << NavMesh.GetAreaFromName("SmallSpace") | 1 << NavMesh.GetAreaFromName("MediumSpace") | 1 << NavMesh.GetAreaFromName("Climb");
+         areas &= ~(1 << NavMesh.GetAreaFromName("SmallSpace"));
+         areas &= ~(1 << NavMesh.GetAreaFromName("MediumSpace"));
+         areas &= ~(1 << NavMesh.GetAreaFromName("Climb"));
+         areas &= ~(1 << NavMesh.GetAreaFromName("PlayerShip"));
+         agent.areaMask = areas;
+         _tooBig = true;
+      }
    }
 }

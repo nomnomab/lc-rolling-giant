@@ -29,9 +29,13 @@ Generated after launching the game for the first time.
 
 ### General
 
-- `GiantScaleMin` - The minimum scale of the Rolling Giant's model
+- `GiantScaleInsideMin` - The minimum scale of the Rolling Giant's model inside
   - This changes how small the Giant can be
-- `GiantScaleMax` - The maximum scale of the Rolling Giant's model
+- `GiantScaleInsideMax` - The maximum scale of the Rolling Giant's model inside
+  - This changes how big the Giant can be
+- `GiantScaleOutsideMin` - The minimum scale of the Rolling Giant's model outside
+  - This changes how small the Giant can be
+- `GiantScaleOutsideMax` - The maximum scale of the Rolling Giant's model outside
   - This changes how big the Giant can be
 
 ### Spawn Conditions
@@ -44,8 +48,10 @@ These do not update when reloading the config in-game!
   - Higher chance = higher chance to get picked
   - The names are what you see in the terminal
   - `Vow:45,March:45,Rend:54,Dine:65,Offense:45,Titan:65`
+- `SpawnInOutsideChance` - The chance for the Rolling Giant to spawn outside in the levels from `SpawnIn`
 - `SpawnInAny` - If the Rolling Giant can spawn on any level
 - `SpawnInAnyChance` - The chance for the Rolling Giant to spawn in any level
+- `SpawnInAnyOutsideChance` - The chance for the Rolling Giant to spawn outside in any level
 - `CanSpawnInside` - If the Rolling Giant should spawn inside the dungeon
 - `CanSpawnOutside` - If the Rolling Giant should spawn outside
 - `DisableOutsideAtNight` - If the Rolling Giant will turn off if it is outside at night.
@@ -74,6 +80,7 @@ These do not update when reloading the config in-game!
   - OnceSeenAgroAfterTimer - Once the player sees the Rolling Giant, it will agro after a timer
     - `WaitTimeMin` - The minimum duration in seconds that the Rolling Giant waits before chasing the player
     - `WaitTimeMax` - The minimum duration in seconds that the Rolling Giant waits before chasing the player
+  - All - Will select all of the ai types
 - `MoveSpeed` - Speed of the Rolling Giant's movement in m/s²
 - `MoveAcceleration` - How long it takes the Rolling Giant to get to its movement speed in seconds
 - `MoveDeceleration` - How long it takes the Rolling Giant to stop moving in seconds
@@ -96,6 +103,24 @@ These do not update when reloading the config in-game!
   - Defaults to `Keypad 9`
 
 ## Changelog
+
+## 2.4.0
+
+- Fixed the Rolling Giant's bestiary entry breaking when scanning the outside versions of it
+- Fixed the Rolling Giant not being able to get on the ship
+- Fixed the latency teleportation of the Rolling Giant on clients; now moves smoothly across all clients
+- Fixed ai path issues if the player jumped or got onto a high place. Now the Rolling Giant paths to the closest point to the player if they are inaccessable
+- Fixed the Rolling Giant damaging the player when clipping into the ship and the player is in the ship. Now it won't damage the player in this case
+- Fixed ai type syncing between clients
+- Fixed various ai types by syncing shared variables between clients
+- Fixed `LookingTooLongKeepsAgro` where the Rolling Giant wouldn't move while the timer is partially completed
+- Fixed `LookingTooLongKeepsAgro` where the time would restart when it switched players, or lost the player
+- Fixed `OnceSeenAgroAfterTimer` where the time would restart when it switched players, or lost the player 
+- Fixed ai type timers resetting when the player jumped or went out of range
+- Fixed the Rolling Giant's audio stuttering if it makes quick small movements to reach a location
+- Improved the wandering speed so it will speed up to their max speed like their chasing state
+- Rolling Giants past 1.2 size can no longer get onto the ship
+- Rolling Giant scale now slightly affects their rolling audio pitch
 
 ## 2.3.0
 
