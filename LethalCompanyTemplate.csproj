@@ -6,9 +6,9 @@
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <LangVersion>latest</LangVersion>
         <RunPostBuildEvent>Always</RunPostBuildEvent>
-        <GameDir>C:\Program Files (x86)\Steam\steamapps\common\Lethal Company\</GameDir>
+        <GameDir>C:\Program Files (x86)\Steam\steamapps\common\Lethal Company</GameDir>
         <RootNamespace>RollingGiant</RootNamespace>
-        <WeaverDir>C:\Users\nomno\Documents\Modding\NetcodePatcher-2.4.0</WeaverDir>
+        <NetcodePatcherDir>C:\Users\nomno\Documents\Modding\NetcodePatcher-2.4.0</NetcodePatcherDir>
     </PropertyGroup>
 
     <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
@@ -28,19 +28,19 @@
 
     <ItemGroup>
       <Reference Include="Assembly-CSharp">
-        <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Lethal Company\Lethal Company_Data\Managed\Assembly-CSharp.dll</HintPath>
+        <HintPath>$(GameDir)\Lethal Company_Data\Managed\Assembly-CSharp.dll</HintPath>
       </Reference>
       <Reference Include="Unity.Collections">
-        <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Lethal Company\Lethal Company_Data\Managed\Unity.Collections.dll</HintPath>
+        <HintPath>$(GameDir)\Lethal Company_Data\Managed\Unity.Collections.dll</HintPath>
       </Reference>
       <Reference Include="Unity.InputSystem">
-        <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Lethal Company\Lethal Company_Data\Managed\Unity.InputSystem.dll</HintPath>
+        <HintPath>$(GameDir)\Lethal Company_Data\Managed\Unity.InputSystem.dll</HintPath>
       </Reference>
       <Reference Include="Unity.Netcode.Runtime">
-        <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Lethal Company\Lethal Company_Data\Managed\Unity.Netcode.Runtime.dll</HintPath>
+        <HintPath>$(GameDir)\Lethal Company_Data\Managed\Unity.Netcode.Runtime.dll</HintPath>
       </Reference>
       <Reference Include="Unity.TextMeshPro">
-        <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Lethal Company\Lethal Company_Data\Managed\Unity.TextMeshPro.dll</HintPath>
+        <HintPath>$(GameDir)\Lethal Company_Data\Managed\Unity.TextMeshPro.dll</HintPath>
       </Reference>
     </ItemGroup>
 
@@ -53,6 +53,6 @@
     </Target>
 
     <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-      <Exec Command="cd $(WeaverDir)&#xA;NetcodePatcher.dll $(TargetDir) deps/&#xA;xcopy /y /d &quot;$(TargetDir)$(TargetName).dll&quot; &quot;$(GameDir)\BepInEx\plugins\RollingGiant\&quot;&#xA;xcopy /y /d &quot;$(TargetDir)$(TargetName).dll&quot; &quot;$(ProjectDir)\plugin\BepInEx\plugins\RollingGiant\&quot;&#xA;xcopy /y /d &quot;$(GameDir)\BepInEx\plugins\RollingGiant\$(TargetName)&quot; &quot;$(ProjectDir)\plugin\BepInEx\plugins\RollingGiant\&quot;" />
+      <Exec Command="cd $(NetcodePatcherDir)&#xA;NetcodePatcher.dll $(TargetDir) deps/&#xA;xcopy /y /d &quot;$(TargetDir)$(TargetName).dll&quot; &quot;$(GameDir)\BepInEx\plugins\RollingGiant\&quot;&#xA;xcopy /y /d &quot;$(TargetDir)$(TargetName).dll&quot; &quot;$(ProjectDir)\plugin\BepInEx\plugins\RollingGiant\&quot;&#xA;xcopy /y /d &quot;$(GameDir)\BepInEx\plugins\RollingGiant\$(TargetName)&quot; &quot;$(ProjectDir)\plugin\BepInEx\plugins\RollingGiant\&quot;" />
     </Target>
 </Project>
