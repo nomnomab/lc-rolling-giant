@@ -32,18 +32,10 @@ public class RollingGiantAI : EnemyAI {
    private bool _wasFeared;
    private bool _isAgro;
    private float _lastSpeed;
-   // private float _audioFade;
-
-   // private float _waitTimer;
-   // private float _moveTimer;
-   // private float _lookTimer;
-   // private float _agroTimer;
-   // private float _springVelocity;
    private bool _tooBig;
 
    private static float NextDouble() {
       if (!RoundManager.Instance || RoundManager.Instance.LevelRandom == null) {
-         // Plugin.Log.LogWarning("Missing RoundManager or LevelRandom, in dev level?");
          return Random.value;
       }
       
@@ -73,8 +65,8 @@ public class RollingGiantAI : EnemyAI {
       
       _rollingSFX.loop = true;
       _rollingSFX.clip = Plugin.WalkSound;
+      
       var time = NextDouble() * Plugin.WalkSound.length;
-      // var pitch = Mathf.Lerp(0.96f, 1.05f, NextDouble());
       _rollingSFX.time = time;
       _rollingSFX.pitch = Mathf.Lerp(1.1f, 0.8f, Mathf.InverseLerp(0.9f, 1.2f, scale));
       _rollingSFX.volume = 0;
@@ -84,8 +76,6 @@ public class RollingGiantAI : EnemyAI {
       if (isOutside) {
          allAINodes = GameObject.FindGameObjectsWithTag("OutsideAINode");
       }
-
-      // Plugin.Log.LogInfo($"[Init::{_sharedAiSettings.aiType}] _rollingSFX.time: {_rollingSFX.time}, _rollingSFX.pitch: {_rollingSFX.pitch}, _rollingSFX.volume: {_rollingSFX.volume}");
    }
 
    public override void DaytimeEnemyLeave() {
@@ -108,6 +98,8 @@ public class RollingGiantAI : EnemyAI {
       base.DoAIInterval();
       
       if (StartOfRound.Instance.livingPlayers == 0 || isEnemyDead) return;
+      
+      // Debug.Log($"{agent.speed}, {_velocity.Value}");
    
       switch (currentBehaviourStateIndex) {
          // searching
@@ -154,7 +146,7 @@ public class RollingGiantAI : EnemyAI {
                // StartSearch(transform.position, _searchForPlayers);
                SwitchToBehaviourState(0);
                // ChangeOwnershipOfEnemy(StartOfRound.Instance.allPlayerScripts[0].actualClientId);
-               Plugin.Log.LogInfo($"[DoAIInterval::{NetworkHandler.AiType}] lost player; StartSearch({transform.position}, _searchForPlayers)");
+               // Plugin.Log.LogInfo($"[DoAIInterval::{NetworkHandler.AiType}] lost player; StartSearch({transform.position}, _searchForPlayers)");
                break;
             }
    
@@ -271,7 +263,7 @@ public class RollingGiantAI : EnemyAI {
             
             if (IsOwner) {
                //if (AmIInRangeOfAPlayer(out var closestPlayer) && closestPlayer == localPlayer) {
-               if (TargetClosestPlayer(requireLineOfSight: true) && targetPlayer == localPlayer) {
+               if (TargetClosestPlayer(requireLineOfSight: true)) {
                   if (_wantsToChaseThisClient) {
                      break;
                   }
@@ -321,14 +313,8 @@ public class RollingGiantAI : EnemyAI {
                if (!TargetClosestPlayer()) {
                   SwitchToBehaviourState(0);
                   EndChasingPlayer_ServerRpc();
-                  Plugin.Log.LogInfo($"[Update::{NetworkHandler.AiType}] not in range; SwitchToBehaviourState(0)");
+                  // Plugin.Log.LogInfo($"[Update::{NetworkHandler.AiType}] not in range; SwitchToBehaviourState(0)");
                   break;
-               }
-               
-               if (lastPlayer != targetPlayer) {
-                  SetMovingTowardsTargetPlayer(targetPlayer);
-                  // ChangeOwnershipOfEnemy(targetPlayer.actualClientId);
-                  Plugin.Log.LogInfo($"[Update::{NetworkHandler.AiType}] SetMovingTowardsTargetPlayer, player {targetPlayer?.playerUsername}");
                }
                
                if (_wasStopped && _sharedAiSettings.rotateToLookAtPlayer) {
@@ -401,6 +387,14 @@ public class RollingGiantAI : EnemyAI {
             //       Plugin.Log.LogInfo($"[Update::{NetworkHandler.AiType}] SetMovingTowardsTargetPlayer, player {targetPlayer?.playerUsername}");
             //    }
             // }
+
+            if (IsOwner) {
+               if (lastPlayer != targetPlayer) {
+                  SetMovingTowardsTargetPlayer(targetPlayer);
+                  // ChangeOwnershipOfEnemy(targetPlayer.actualClientId);
+                  // Plugin.Log.LogInfo($"[Update::{NetworkHandler.AiType}] SetMovingTowardsTargetPlayer, player {targetPlayer?.playerUsername}");
+               }
+            }
 
             // if (!IsOwner || lastPlayer == targetPlayer || targetPlayer != localPlayer) {
             //    return;
