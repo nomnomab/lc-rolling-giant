@@ -104,6 +104,13 @@ These do not update when reloading the config in-game!
 
 ## Changelog
 
+## 2.4.1
+
+- Fixed an ownership issue that caused the Rolling Giant to spam errors
+- Fixed an ownership issue that caused the Rolling Giant to not untarget from someone
+- Fixed an ownership issue that caused the Rolling Giant to target people outside of the factory
+- Removed capsule collider and added a box collider as it was causing issues with the Rolling Giant's attack
+
 ## 2.4.0
 
 - Fixed the Rolling Giant's bestiary entry breaking when scanning the outside versions of it

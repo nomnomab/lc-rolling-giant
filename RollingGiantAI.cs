@@ -19,11 +19,11 @@ public class RollingGiantAI : EnemyAI {
    private static SharedAiSettings _sharedAiSettings => CustomConfig.SharedAiSettings;
    
    private AudioSource _rollingSFX;
-   private NetworkVariable<float> _velocity = new(writePerm: NetworkVariableWritePermission.Owner);
-   private NetworkVariable<float> _waitTimer = new(writePerm: NetworkVariableWritePermission.Owner);
-   private NetworkVariable<float> _moveTimer = new(writePerm: NetworkVariableWritePermission.Owner);
-   private NetworkVariable<float> _lookTimer = new(writePerm: NetworkVariableWritePermission.Owner);
-   private NetworkVariable<float> _agroTimer = new(writePerm: NetworkVariableWritePermission.Owner);
+   private NetworkVariable<float> _velocity = new();
+   private NetworkVariable<float> _waitTimer = new();
+   private NetworkVariable<float> _moveTimer = new();
+   private NetworkVariable<float> _lookTimer = new();
+   private NetworkVariable<float> _agroTimer = new();
 
    private float _timeSinceHittingPlayer;
    private bool _wantsToChaseThisClient;
@@ -153,8 +153,8 @@ public class RollingGiantAI : EnemyAI {
                // _searchForPlayers.searchWidth = 30f;
                // StartSearch(transform.position, _searchForPlayers);
                SwitchToBehaviourState(0);
-               ChangeOwnershipOfEnemy(StartOfRound.Instance.allPlayerScripts[0].actualClientId);
-               // Plugin.Log.LogInfo($"[DoAIInterval::{NetworkHandler.AiType}] lost player; StartSearch({transform.position}, _searchForPlayers)");
+               // ChangeOwnershipOfEnemy(StartOfRound.Instance.allPlayerScripts[0].actualClientId);
+               Plugin.Log.LogInfo($"[DoAIInterval::{NetworkHandler.AiType}] lost player; StartSearch({transform.position}, _searchForPlayers)");
                break;
             }
    
@@ -192,7 +192,8 @@ public class RollingGiantAI : EnemyAI {
       //    Plugin.Log.LogInfo($"[Update::{NetworkHandler.AiType}] !IsOwner, {agent.isOnNavMesh}, {agent.isActiveAndEnabled}");
       // }
    
-      _mainCollider.isTrigger = !_wasStopped;
+      // _mainCollider.isTrigger = !_wasStopped;
+      _mainCollider.isTrigger = _velocity.Value > 0.01f;
    
       // var speed = !(IsOwner || IsHost) ? _velocity.Value : agent.velocity.magnitude;
       var speed = _velocity.Value;
@@ -250,6 +251,7 @@ public class RollingGiantAI : EnemyAI {
                _wantsToChaseThisClient = false;
                _wasStopped = false;
                _wasFeared = false;
+               agent.speed = 0;
                if (_aiType is not RollingGiantAiType.OnceSeenAgroAfterTimer) {
                   _isAgro = false;
                   if (IsOwner) {
@@ -269,14 +271,14 @@ public class RollingGiantAI : EnemyAI {
             
             if (IsOwner) {
                //if (AmIInRangeOfAPlayer(out var closestPlayer) && closestPlayer == localPlayer) {
-               if (base.TargetClosestPlayer(requireLineOfSight: true) && targetPlayer == localPlayer) {
+               if (TargetClosestPlayer(requireLineOfSight: true) && targetPlayer == localPlayer) {
                   if (_wantsToChaseThisClient) {
                      break;
                   }
 
                   _wantsToChaseThisClient = true;
                   BeginChasingPlayer_ServerRpc((int)targetPlayer.playerClientId);
-                  ChangeOwnershipOfEnemy(targetPlayer.actualClientId);
+                  // ChangeOwnershipOfEnemy(targetPlayer.actualClientId);
                   // Plugin.Log.LogInfo($"[Update::{NetworkHandler.AiType}] began chasing local player {targetPlayer?.playerUsername}");
                } else {
                   // Plugin.Log.LogInfo($"[Update::{NetworkHandler.AiType}] not in range; SwitchToBehaviourState(0); {targetPlayer}");
@@ -317,10 +319,16 @@ public class RollingGiantAI : EnemyAI {
             if (IsOwner) {
                // nobody is in range so go back to searching
                if (!TargetClosestPlayer()) {
-                  // SwitchToBehaviourState(0);
+                  SwitchToBehaviourState(0);
                   EndChasingPlayer_ServerRpc();
-                  // Plugin.Log.LogInfo($"[Update::{NetworkHandler.AiType}] not in range; SwitchToBehaviourState(0)");
+                  Plugin.Log.LogInfo($"[Update::{NetworkHandler.AiType}] not in range; SwitchToBehaviourState(0)");
                   break;
+               }
+               
+               if (lastPlayer != targetPlayer) {
+                  SetMovingTowardsTargetPlayer(targetPlayer);
+                  // ChangeOwnershipOfEnemy(targetPlayer.actualClientId);
+                  Plugin.Log.LogInfo($"[Update::{NetworkHandler.AiType}] SetMovingTowardsTargetPlayer, player {targetPlayer?.playerUsername}");
                }
                
                if (_wasStopped && _sharedAiSettings.rotateToLookAtPlayer) {
@@ -385,65 +393,117 @@ public class RollingGiantAI : EnemyAI {
             _wasStopped = false;
             _wasFeared = false;
             // Plugin.Log.LogInfo($"[Update::{aiType}] _wasStopped: {_wasStopped}, _wasFeared: {_wasFeared}, _lastSpeed: {_lastSpeed}");
-   
-            if (!IsOwner || lastPlayer == targetPlayer || targetPlayer != localPlayer) {
-               return;
-            }
-   
-            SetMovingTowardsTargetPlayer(targetPlayer);
-            ChangeOwnershipOfEnemy(targetPlayer.actualClientId);
-            // Plugin.Log.LogInfo($"[Update::{NetworkHandler.AiType}] SetMovingTowardsTargetPlayer, player {targetPlayer?.playerUsername}");
+
+            // if (IsOwner) {
+            //    if (lastPlayer != targetPlayer) {
+            //       SetMovingTowardsTargetPlayer(targetPlayer);
+            //       // ChangeOwnershipOfEnemy(targetPlayer.actualClientId);
+            //       Plugin.Log.LogInfo($"[Update::{NetworkHandler.AiType}] SetMovingTowardsTargetPlayer, player {targetPlayer?.playerUsername}");
+            //    }
+            // }
+
+            // if (!IsOwner || lastPlayer == targetPlayer || targetPlayer != localPlayer) {
+            //    return;
+            // }
          }
             break;
       }
    }
 
-   // ? needed to insert the overrideInsideFactoryCheck override
-   public new bool TargetClosestPlayer(float bufferDistance = 1.5f, bool requireLineOfSight = false, float viewWidth = 70f) {
-      mostOptimalDistance = 2000f;
-      var targetPlayer = this.targetPlayer;
-      this.targetPlayer = null;
-      for (int i = 0; i < StartOfRound.Instance.connectedPlayersAmount + 1; ++i) {
-         var player = StartOfRound.Instance.allPlayerScripts[i];
-         if (player.isPlayerDead) continue;
-         if (!player.IsSpawned) continue;
-         
-         var position = player.transform.position;
-         var pathIsIntersectedByLineOfSight = PathIsIntersectedByLineOfSight(position, avoidLineOfSight: false);
-         if (pathIsIntersectedByLineOfSight) {
-            // get closest navmesh point
-            var closestNode = ChooseClosestNodeToPosition(player.transform.position, avoidLineOfSight: false);
-            if (closestNode) {
-               position = closestNode.position;
-               pathIsIntersectedByLineOfSight = PathIsIntersectedByLineOfSight(position, avoidLineOfSight: false);
-            }
-         }
-         
-         // ? this gets modified above so this is resetting it otherwise it is too low
-         mostOptimalDistance = 2000f;
-         var hasLineOfSightToPosition = HasLineOfSightToPosition(player.gameplayCamera.transform.position, viewWidth, 2000);
-         if (!pathIsIntersectedByLineOfSight && (!requireLineOfSight || hasLineOfSightToPosition)) {
-            tempDist = Vector3.Distance(transform.position, StartOfRound.Instance.allPlayerScripts[i].transform.position);
-            if (tempDist < (double)mostOptimalDistance) {
-               // Plugin.Log.LogInfo($"[TargetClosestPlayer::{NetworkHandler.AiType}] [{i}] ({player?.playerUsername}) tempDist: {tempDist}, mostOptimalDistance: {mostOptimalDistance}");
-               mostOptimalDistance = tempDist;
-               this.targetPlayer = StartOfRound.Instance.allPlayerScripts[i];
-            } else {
-               // Plugin.Log.LogInfo($"[TargetClosestPlayer::{NetworkHandler.AiType}] [{i}] ({player?.playerUsername}) tempDist: {tempDist}, mostOptimalDistance: {mostOptimalDistance}");
-            }
-         } else {
-            // Plugin.Log.LogInfo($"[TargetClosestPlayer::{NetworkHandler.AiType}] [{i}] ({player?.playerUsername}) pathIsIntersectedByLineOfSight: {pathIsIntersectedByLineOfSight}, hasLineOfSightToPosition: {hasLineOfSightToPosition}");
-         }
-      }
+   // public bool GetClosestPlayer() {
+   //    this.targetPlayer = null;
+   //    
+   //    // did the player see the giant
+   //    if (AmIBeingLookedAt(out var closestPlayer)) {
+   //       targetPlayer = closestPlayer;
+   //       return closestPlayer;
+   //    }
+   //    
+   //    var closestDistance = 2000f;
+   //    for (int i = 0; i < StartOfRound.Instance.connectedPlayersAmount + 1; ++i) {
+   //       var player = StartOfRound.Instance.allPlayerScripts[i];
+   //       if (player.isPlayerDead) continue;
+   //       if (!player.IsSpawned) continue;
+   //       
+   //       var position = player.transform.position;
+   //       
+   //       // did the giant see this player
+   //       var pathIsIntersectedByLineOfSight = PathIsIntersectedByLineOfSight(position, avoidLineOfSight: false);
+   //       // if (!pathIsIntersectedByLineOfSight) {
+   //       //    var closestNode = ChooseClosestNodeToPosition(player.transform.position, avoidLineOfSight: false);
+   //       //    if (closestNode) {
+   //       //       position = closestNode.position;
+   //       //       pathIsIntersectedByLineOfSight = PathIsIntersectedByLineOfSight(position, avoidLineOfSight: false);
+   //       //    }
+   //       // }
+   //       
+   //       if (!pathIsIntersectedByLineOfSight) {
+   //          continue;
+   //       }
+   //       
+   //       if (isOutside == player.isInsideFactory) {
+   //          continue;
+   //       }
+   //       
+   //       var distance = Vector3.Distance(transform.position, position);
+   //       if (distance < closestDistance) {
+   //          closestDistance = distance;
+   //          targetPlayer = player;
+   //       }
+   //    }
+   //
+   //    return targetPlayer;
+   // }
    
-      if (this.targetPlayer && this.targetPlayer != targetPlayer && bufferDistance > 0.0 && targetPlayer && Mathf.Abs(mostOptimalDistance - Vector3.Distance(transform.position, targetPlayer.transform.position)) < (double)bufferDistance) {
-         this.targetPlayer = targetPlayer;
-      } else if (this.targetPlayer != targetPlayer) {
-         // Plugin.Log.LogInfo($"[TargetClosestPlayer::{NetworkHandler.AiType}] this.targetPlayer: {this.targetPlayer?.playerUsername}, targetPlayer: {targetPlayer?.playerUsername}, mostOptimalDistance: {mostOptimalDistance}, bufferDistance: {bufferDistance}, distance: {(targetPlayer ? Vector3.Distance(transform.position, targetPlayer.transform.position) : -1)}");
-      }
-   
-      return this.targetPlayer;
-   }
+   // public new bool TargetClosestPlayer(float bufferDistance = 1.5f, bool requireLineOfSight = false, float viewWidth = 70f) {
+   //    mostOptimalDistance = 2000;
+   //    var targetPlayer = this.targetPlayer;
+   //    this.targetPlayer = null;
+   //    for (int i = 0; i < StartOfRound.Instance.connectedPlayersAmount + 1; ++i) {
+   //       var player = StartOfRound.Instance.allPlayerScripts[i];
+   //       if (player.isPlayerDead) continue;
+   //       if (!player.IsSpawned) continue;
+   //       // if (isOutside && player.isInsideFactory) continue;
+   //
+   //       var position = player.transform.position;
+   //       var pathIsIntersectedByLineOfSight = PathIsIntersectedByLineOfSight(position, avoidLineOfSight: false);
+   //       // if (isOutside) {
+   //       //    if (pathIsIntersectedByLineOfSight) {
+   //       //       // get closest navmesh point
+   //       //       var closestNode = ChooseClosestNodeToPosition(player.transform.position, avoidLineOfSight: false);
+   //       //       if (closestNode) {
+   //       //          position = closestNode.position;
+   //       //          pathIsIntersectedByLineOfSight = PathIsIntersectedByLineOfSight(position, avoidLineOfSight: false);
+   //       //       }
+   //       //       
+   //       //       // ? this gets modified above so this is resetting it otherwise it is too low
+   //       //       mostOptimalDistance += 10;
+   //       //    }
+   //       // }
+   //       
+   //       var hasLineOfSightToPosition = HasLineOfSightToPosition(player.gameplayCamera.transform.position, viewWidth, 40);
+   //       if (!pathIsIntersectedByLineOfSight && (!requireLineOfSight || hasLineOfSightToPosition)) {
+   //          tempDist = Vector3.Distance(transform.position, StartOfRound.Instance.allPlayerScripts[i].transform.position);
+   //          if (tempDist < (double)mostOptimalDistance) {
+   //             // Plugin.Log.LogInfo($"[TargetClosestPlayer::{NetworkHandler.AiType}] [{i}] ({player?.playerUsername}) tempDist: {tempDist}, mostOptimalDistance: {mostOptimalDistance}");
+   //             mostOptimalDistance = tempDist;
+   //             this.targetPlayer = StartOfRound.Instance.allPlayerScripts[i];
+   //          } else {
+   //             // Plugin.Log.LogInfo($"[TargetClosestPlayer::{NetworkHandler.AiType}] [{i}] ({player?.playerUsername}) tempDist: {tempDist}, mostOptimalDistance: {mostOptimalDistance}");
+   //          }
+   //       } else {
+   //          // Plugin.Log.LogInfo($"[TargetClosestPlayer::{NetworkHandler.AiType}] [{i}] ({player?.playerUsername}) pathIsIntersectedByLineOfSight: {pathIsIntersectedByLineOfSight}, hasLineOfSightToPosition: {hasLineOfSightToPosition}");
+   //       }
+   //    }
+   //
+   //    if (this.targetPlayer && this.targetPlayer != targetPlayer && bufferDistance > 0.0 && targetPlayer && Mathf.Abs(mostOptimalDistance - Vector3.Distance(transform.position, targetPlayer.transform.position)) < (double)bufferDistance) {
+   //       this.targetPlayer = targetPlayer;
+   //    } else if (this.targetPlayer != targetPlayer) {
+   //       // Plugin.Log.LogInfo($"[TargetClosestPlayer::{NetworkHandler.AiType}] this.targetPlayer: {this.targetPlayer?.playerUsername}, targetPlayer: {targetPlayer?.playerUsername}, mostOptimalDistance: {mostOptimalDistance}, bufferDistance: {bufferDistance}, distance: {(targetPlayer ? Vector3.Distance(transform.position, targetPlayer.transform.position) : -1)}");
+   //    }
+   //
+   //    return this.targetPlayer;
+   // }
 
    private static float SmoothLerp(float a, float b, float t) {
       return a + (t * t) * (b - a);
@@ -527,7 +587,7 @@ public class RollingGiantAI : EnemyAI {
             case RollingGiantAiType.RandomlyMoveWhileLooking:
                if (isLookedAt) {
                   if (_waitTimer.Value <= 0 && _moveTimer.Value <= 0) {
-                     GenerateWaitTime_LocalClient();
+                     GenerateWaitTime();
                   }
 
                   if (_waitTimer.Value > 0 && _moveTimer.Value <= 0) {
@@ -535,9 +595,9 @@ public class RollingGiantAI : EnemyAI {
 
                      if (IsOwner) {
                         _waitTimer.Value -= Time.deltaTime;
-                     }
-                     if (_waitTimer.Value <= 0) {
-                        GenerateMoveTime_LocalClient();
+                        if (_waitTimer.Value <= 0) {
+                           GenerateMoveTime();
+                        }
                      }
                      return;
                   }
@@ -548,9 +608,9 @@ public class RollingGiantAI : EnemyAI {
                if (_moveTimer.Value > 0) {
                   if (IsOwner) {
                      _moveTimer.Value -= Time.deltaTime;
-                  }
-                  if (_moveTimer.Value <= 0) {
-                     GenerateWaitTime_LocalClient();
+                     if (_moveTimer.Value <= 0) {
+                        GenerateWaitTime();
+                     }
                   }
                }
                break;
@@ -733,34 +793,22 @@ public class RollingGiantAI : EnemyAI {
       SwitchToBehaviourStateOnLocalClient(0);
       // Plugin.Log.LogInfo($"[EndChasingPlayer_ClientRpc::{_sharedAiSettings.aiType}] SwitchToBehaviourStateOnLocalClient(0)");
    }
-
-   [ServerRpc(RequireOwnership = false)]
-   private void GenerateWaitTime_ServerRpc(float waitTime) {
+   
+   private void GenerateWaitTime() {
+      if (!IsOwner) return;
+      var waitTime = Mathf.Lerp(_sharedAiSettings.waitTimeMin, _sharedAiSettings.waitTimeMax, NextDouble());
       _waitTimer.Value = waitTime;
    }
    
-   private void GenerateWaitTime_LocalClient() {
-      var waitTime = Mathf.Lerp(_sharedAiSettings.waitTimeMin, _sharedAiSettings.waitTimeMax, NextDouble());
-      GenerateWaitTime_ServerRpc(waitTime);
+   private void GenerateAgroTime() {
+      if (!IsOwner) return;
+      _agroTimer.Value = _sharedAiSettings.lookTimeBeforeAgro;
    }
    
-   [ServerRpc(RequireOwnership = false)]
-   private void GenerateAgroTime_ServerRpc(float agroTime) {
-      _agroTimer.Value = agroTime;
-   }
-   
-   private void GenerateAgroTime_LocalClient() {
-      GenerateWaitTime_ServerRpc(_sharedAiSettings.lookTimeBeforeAgro);
-   }
-   
-   [ServerRpc(RequireOwnership = false)]
-   private void GenerateMoveTime_ServerRpc(float moveTime) {
-      _moveTimer.Value = moveTime;
-   }
-   
-   private void GenerateMoveTime_LocalClient() {
+   private void GenerateMoveTime() {
+      if (!IsOwner) return;
       var moveTime = Mathf.Lerp(_sharedAiSettings.randomMoveTimeMin, _sharedAiSettings.randomMoveTimeMax, NextDouble());
-      GenerateMoveTime_ServerRpc(moveTime);
+      _moveTimer.Value = moveTime;
    }
 
    [ServerRpc(RequireOwnership = false)]
