@@ -102,6 +102,44 @@ These do not update when reloading the config in-game!
   - This uses Unity's New Input System's key-bind names
   - Defaults to `Keypad 9`
 
+### Building the project
+
+#### Removing the local plugin package step
+
+Remove the `PreBuild` step in the csproj, and replace the `PostBuild` step with
+
+```cs
+<Target Name="PostBuild" AfterTargets="PostBuildEvent">
+  <Exec Command="cd $(NetcodePatcherDir)&#xA;NetcodePatcher.dll $(TargetDir) deps/&#xA;xcopy /y /d &quot;$(TargetDir)$(TargetName).dll&quot; &quot;$(GameDir)\BepInEx\plugins\RollingGiant\&quot;&#xA;" />
+</Target>
+```
+
+Also remove:
+
+```cs
+<ItemGroup>
+  <Folder Include="plugin\BepInEx\plugins\RollingGiant\" />
+</ItemGroup>
+```
+
+#### Initial steps
+
+1. Open the .csproj
+2. Change `<GameDir>` to where your game is installed
+3. Change `<NetcodePatcherDir>` to where you have the [Unity Netcode Patcher](https://github.com/EvaisaDev/UnityNetcodePatcher) extracted
+
+> Can also remove the enter netcode patcher step if you want to use the nuget version instead, but I haven't updated to that yet, so I haven't looked into it
+
+4. Build
+
+When built, it will patch the dll and then copy the dll to the game's plugin folder.
+
+If you don't want the auto-copying to the game directory, then remove this from the `PostBuild` step:
+
+```cs
+xcopy /y /d &quot;$(TargetDir)$(TargetName).dll&quot; &quot;$(GameDir)\BepInEx\plugins\RollingGiant\&quot;&#xA;
+```
+
 ## Changelog
 
 ## 2.4.2
