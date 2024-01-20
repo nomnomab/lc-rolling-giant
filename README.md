@@ -110,6 +110,7 @@ These do not update when reloading the config in-game!
 - Fixed an ownership issue that caused the Rolling Giant to not untarget from someone
 - Fixed an ownership issue that caused the Rolling Giant to target people outside of the factory
 - Removed capsule collider and added a box collider as it was causing issues with the Rolling Giant's attack
+- Rolling Giants outside still don't work properly, but is getting worked on 🫡
 
 ## 2.4.0
 
