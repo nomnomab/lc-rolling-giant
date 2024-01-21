@@ -34,6 +34,12 @@ public class RollingGiantAI : EnemyAI {
    private float _lastSpeed;
    private bool _tooBig;
 
+   private static void LogInfo(object message) {
+#if DEBUG
+      Plugin.Log.LogInfo(message);
+#endif
+   }
+
    private static float NextDouble() {
       if (!RoundManager.Instance || RoundManager.Instance.LevelRandom == null) {
          return Random.value;
@@ -51,7 +57,7 @@ public class RollingGiantAI : EnemyAI {
          AssignInitData_LocalClient();
       }
       
-      Plugin.Log.LogInfo($"Rolling giant spawned with ai type: {NetworkHandler.AiType}, owner? {IsOwner}");
+      LogInfo($"Rolling giant spawned with ai type: {NetworkHandler.AiType}, owner? {IsOwner}");
    }
 
    private void Init(float scale) {
@@ -99,7 +105,7 @@ public class RollingGiantAI : EnemyAI {
       
       if (StartOfRound.Instance.livingPlayers == 0 || isEnemyDead) return;
       
-      // Debug.Log($"{agent.speed}, {_velocity.Value}");
+      // LogInfo($"{agent.speed}, {_velocity.Value}");
    
       switch (currentBehaviourStateIndex) {
          // searching
@@ -111,42 +117,46 @@ public class RollingGiantAI : EnemyAI {
    
             if (!_searchForPlayers.inProgress) {
                StartSearch(transform.position, _searchForPlayers);
-               // Plugin.Log.LogInfo($"[DoAIInterval::{NetworkHandler.AiType}] StartSearch({transform.position}, _searchForPlayers)");
+               LogInfo($"[DoAIInterval::{NetworkHandler.AiType}] StartSearch({transform.position}, _searchForPlayers)");
                return;
             }
 
             foreach (var player in StartOfRound.Instance.allPlayerScripts) {
                if (player.isPlayerDead) continue;
                if (!player.IsSpawned) continue;
-               if (!isOutside != player.isInsideFactory) continue;
-               
-               // if (PlayerIsTargetable(player, overrideInsideFactoryCheck: isOutside) &&
+               if (isOutside == player.isInsideFactory) continue;
                if (!isOutside && !PlayerIsTargetable(player)) continue;
 
                var distance = Vector3.Distance(transform.position, player.transform.position);
                var inRange = distance < (isOutside ? 90 : 30);
                if (Physics.Linecast(transform.position + Vector3.up * 0.5f, player.gameplayCamera.transform.position, StartOfRound.Instance.collidersAndRoomMaskAndDefault) && inRange) {
                   SwitchToBehaviourState(1);
-                  // Plugin.Log.LogInfo($"[DoAIInterval::{NetworkHandler.AiType}] SwitchToBehaviourState(1), found {player?.playerUsername} at distance {distance}m");
+                  LogInfo($"[DoAIInterval::{NetworkHandler.AiType}] SwitchToBehaviourState(1), found {player?.playerUsername} at distance {distance}m");
                   return;
                }
             }
             
+            if (isOutside) {
+               var closest = GetClosestPlayer();
+               var distance = Vector3.Distance(transform.position, closest.transform.position);
+               var inRange = distance < (isOutside ? 90 : 30);
+               if (closest && Physics.Linecast(transform.position + Vector3.up * 0.5f, closest.gameplayCamera.transform.position, StartOfRound.Instance.collidersAndRoomMaskAndDefault) && inRange) {
+                  targetPlayer = closest;
+                  SwitchToBehaviourState(1);
+                  LogInfo($"[DoAIInterval::{NetworkHandler.AiType}] ClosestPlayer! SwitchToBehaviourState(1), found {targetPlayer?.playerUsername}");
+               }
+            }
             break;
          // chasing
          case 1:
             // not in range of any player, so go back to wandering
-            // if (!AmIInRangeOfAPlayer(out _)) {
             if (!TargetClosestPlayer()) {
                movingTowardsTargetPlayer = false;
                if (_searchForPlayers.inProgress) {
                   break;
                }
-               // _searchForPlayers.searchWidth = 30f;
-               // StartSearch(transform.position, _searchForPlayers);
                SwitchToBehaviourState(0);
-               // ChangeOwnershipOfEnemy(StartOfRound.Instance.allPlayerScripts[0].actualClientId);
-               // Plugin.Log.LogInfo($"[DoAIInterval::{NetworkHandler.AiType}] lost player; StartSearch({transform.position}, _searchForPlayers)");
+               LogInfo($"[DoAIInterval::{NetworkHandler.AiType}] lost player; StartSearch({transform.position}, _searchForPlayers)");
                break;
             }
    
@@ -157,7 +167,7 @@ public class RollingGiantAI : EnemyAI {
             // stop the current search as we found a player!
             StopSearch(_searchForPlayers);
             movingTowardsTargetPlayer = true;
-            // Plugin.Log.LogInfo($"[DoAIInterval::{NetworkHandler.AiType}] StopSearch(_searchForPlayers), found {targetPlayer?.playerUsername}");
+            LogInfo($"[DoAIInterval::{NetworkHandler.AiType}] StopSearch(_searchForPlayers), found {targetPlayer?.playerUsername}");
             break;
       }
    }
@@ -178,45 +188,25 @@ public class RollingGiantAI : EnemyAI {
    
       _lastSpeed = agent.velocity.magnitude;
       CalculateAgentSpeed();
+      
       _timeSinceHittingPlayer += Time.deltaTime;
-   
-      // if (!IsOwner) {
-      //    Plugin.Log.LogInfo($"[Update::{NetworkHandler.AiType}] !IsOwner, {agent.isOnNavMesh}, {agent.isActiveAndEnabled}");
-      // }
-   
-      // _mainCollider.isTrigger = !_wasStopped;
       _mainCollider.isTrigger = _velocity.Value > 0.01f;
-   
-      // var speed = !(IsOwner || IsHost) ? _velocity.Value : agent.velocity.magnitude;
+      
       var speed = _velocity.Value;
-      // Plugin.Log.LogInfo($"[Update::{NetworkHandler.AiType}] speed: {speed}/{_sharedAiSettings.moveSpeed}, moveTowardsDestination: {moveTowardsDestination}: movingTowardsTargetPlayer: {movingTowardsTargetPlayer}, onNavmesh: {agent.isOnNavMesh}, isActiveAndEnabled: {agent.isActiveAndEnabled}");
-      // Plugin.Log.LogInfo($"[Update::{NetworkHandler.AiType}] speed: {speed}/{_sharedAiSettings.moveSpeed}, _rollingSFX.volume: {_rollingSFX.volume}");
+      LogInfo($"[Update::{NetworkHandler.AiType}] speed: {speed}/{_sharedAiSettings.moveSpeed}, moveTowardsDestination: {moveTowardsDestination}: movingTowardsTargetPlayer: {movingTowardsTargetPlayer}, onNavmesh: {agent.isOnNavMesh}, isActiveAndEnabled: {agent.isActiveAndEnabled}");
+      // LogInfo($"[Update::{NetworkHandler.AiType}] speed: {speed}/{_sharedAiSettings.moveSpeed}, _rollingSFX.volume: {_rollingSFX.volume}");
       if (speed > 0.1f) {
          _rollingSFX.volume = Mathf.Lerp(0, Mathf.Clamp01(ROAMING_AUDIO_PERCENT * speed + 0.05f), speed / _sharedAiSettings.moveSpeed);
       } else {
          _rollingSFX.volume = Mathf.Lerp(_rollingSFX.volume, 0, Time.deltaTime);
       }
-
-      // if (_wasStopped) {
-      //    _audioFade -= Time.deltaTime;
-      //    _audioFade = Mathf.Clamp01(_audioFade);
-      //
-      //    _rollingSFX.volume = SmoothLerp(0, _rollingSFX.volume, _audioFade);
-      //    // Plugin.Log.LogInfo($"[Update::{_sharedAiSettings.aiType}] stopped; agent.speed: {agent.speed}, velocity: {agent.velocity.magnitude}, other: {_velocity.Value}, _rollingSFX.volume: {_rollingSFX.volume}");
-      // } else {
-      //    _audioFade += Time.deltaTime;
-      //    _audioFade = Mathf.Clamp01(_audioFade);
-      //
-      //    _rollingSFX.volume = SmoothLerp(_rollingSFX.volume, Mathf.Clamp01(ROAMING_AUDIO_PERCENT * speed + 0.05f), _audioFade);
-      //    // Plugin.Log.LogInfo($"[Update::{_sharedAiSettings.aiType}] rolling; agent.speed: {agent.speed}, velocity: {agent.velocity.magnitude}, other: {_velocity.Value}, _rollingSFX.volume: {_rollingSFX.volume}");
-      // }
    
       var gameNetworkManager = GameNetworkManager.Instance;
       var localPlayer = gameNetworkManager.localPlayerController;
       if (_wasStopped && !_wasFeared) {
          if (localPlayer.HasLineOfSightToPosition(eye.position, 70, 25)) {
             _wasFeared = true;
-            // Plugin.Log.LogInfo($"[Update] feared");
+            // LogInfo($"[Update] feared");
    
             var distance = Vector3.Distance(transform.position, localPlayer.transform.position);
             if (distance < 4) {
@@ -227,10 +217,10 @@ public class RollingGiantAI : EnemyAI {
    
             if (_lastSpeed > 1) {
                RoundManager.PlayRandomClip(creatureVoice, _stopNoises, false);
-               // Plugin.Log.LogInfo($"[Update::{_sharedAiSettings.aiType}] _lastSpeed: {_lastSpeed}");
+               // LogInfo($"[Update::{_sharedAiSettings.aiType}] _lastSpeed: {_lastSpeed}");
             }
    
-            // Plugin.Log.LogInfo($"[Update::{_sharedAiSettings.aiType}] _wasStopped: {_wasStopped}, _wasFeared: {_wasFeared}, _lastSpeed: {_lastSpeed}");
+            // LogInfo($"[Update::{_sharedAiSettings.aiType}] _wasStopped: {_wasStopped}, _wasFeared: {_wasFeared}, _lastSpeed: {_lastSpeed}");
          }
       }
    
@@ -255,14 +245,9 @@ public class RollingGiantAI : EnemyAI {
                   _moveTimer.Value = 0;
                   _lookTimer.Value = 0;
                }
-               // _springVelocity = 0;
-               // agent.stoppingDistance = 0;
-               // agent.speed = _sharedAiSettings.moveSpeed;
-               // agent.acceleration = 200;
             }
             
             if (IsOwner) {
-               //if (AmIInRangeOfAPlayer(out var closestPlayer) && closestPlayer == localPlayer) {
                if (TargetClosestPlayer(requireLineOfSight: true)) {
                   if (_wantsToChaseThisClient) {
                      break;
@@ -270,10 +255,7 @@ public class RollingGiantAI : EnemyAI {
 
                   _wantsToChaseThisClient = true;
                   BeginChasingPlayer_ServerRpc((int)targetPlayer.playerClientId);
-                  // ChangeOwnershipOfEnemy(targetPlayer.actualClientId);
-                  // Plugin.Log.LogInfo($"[Update::{NetworkHandler.AiType}] began chasing local player {targetPlayer?.playerUsername}");
-               } else {
-                  // Plugin.Log.LogInfo($"[Update::{NetworkHandler.AiType}] not in range; SwitchToBehaviourState(0); {targetPlayer}");
+                  LogInfo($"[Update::{NetworkHandler.AiType}] began chasing local player {targetPlayer?.playerUsername}");
                }
             }
          }
@@ -297,10 +279,6 @@ public class RollingGiantAI : EnemyAI {
                   _moveTimer.Value = 0;
                   _lookTimer.Value = 0;
                }
-               // _springVelocity = 0;
-               // agent.stoppingDistance = 0;
-               // agent.speed = 0;
-               // agent.acceleration = 200;
             }
    
             if (stunNormalizedTimer > 0) {
@@ -310,11 +288,22 @@ public class RollingGiantAI : EnemyAI {
             var lastPlayer = targetPlayer;
             if (IsOwner) {
                // nobody is in range so go back to searching
-               if (!TargetClosestPlayer()) {
+               if (!isOutside && !TargetClosestPlayer()) {
                   SwitchToBehaviourState(0);
                   EndChasingPlayer_ServerRpc();
-                  // Plugin.Log.LogInfo($"[Update::{NetworkHandler.AiType}] not in range; SwitchToBehaviourState(0)");
+                  LogInfo($"[Update::{NetworkHandler.AiType}] not in range; SwitchToBehaviourState(0)");
                   break;
+               }
+
+               if (isOutside && !TargetClosestPlayer()) {
+                  var player = GetClosestPlayer();
+                  if (!player) {
+                     SwitchToBehaviourState(0);
+                     EndChasingPlayer_ServerRpc();
+                     LogInfo($"[Update::{NetworkHandler.AiType}] not in range; SwitchToBehaviourState(0)");
+                     break;
+                  }
+                  targetPlayer = player;
                }
                
                if (_wasStopped && _sharedAiSettings.rotateToLookAtPlayer) {
@@ -327,11 +316,8 @@ public class RollingGiantAI : EnemyAI {
                      dir.Normalize();
    
                      var quaternion = Quaternion.LookRotation(dir);
-                     // _visuals.rotation = Quaternion.Lerp(_visuals.rotation, quaternion, Time.deltaTime * 5f);
                      transform.rotation = Quaternion.Lerp(transform.rotation, quaternion, Time.deltaTime / _sharedAiSettings.lookAtPlayerDuration);
                   }
-               } else if (!_wasStopped && _sharedAiSettings.rotateToLookAtPlayer) {
-                  // _visuals.localRotation = Quaternion.Lerp(_visuals.localRotation, Quaternion.identity, Time.deltaTime * 5f);
                }
             }
    
@@ -340,7 +326,6 @@ public class RollingGiantAI : EnemyAI {
                case RollingGiantAiType.Coilhead:
                   if (AmIBeingLookedAt(out _)) {
                      _wasStopped = true;
-                     // Plugin.Log.LogInfo($"[Update::{aiType}] _wasStopped");
                      return;
                   }
                   break;
@@ -378,21 +363,20 @@ public class RollingGiantAI : EnemyAI {
    
             _wasStopped = false;
             _wasFeared = false;
-            // Plugin.Log.LogInfo($"[Update::{aiType}] _wasStopped: {_wasStopped}, _wasFeared: {_wasFeared}, _lastSpeed: {_lastSpeed}");
+            // LogInfo($"[Update::{aiType}] _wasStopped: {_wasStopped}, _wasFeared: {_wasFeared}, _lastSpeed: {_lastSpeed}");
 
             // if (IsOwner) {
             //    if (lastPlayer != targetPlayer) {
             //       SetMovingTowardsTargetPlayer(targetPlayer);
             //       // ChangeOwnershipOfEnemy(targetPlayer.actualClientId);
-            //       Plugin.Log.LogInfo($"[Update::{NetworkHandler.AiType}] SetMovingTowardsTargetPlayer, player {targetPlayer?.playerUsername}");
+            //       LogInfo($"[Update::{NetworkHandler.AiType}] SetMovingTowardsTargetPlayer, player {targetPlayer?.playerUsername}");
             //    }
             // }
 
             if (IsOwner) {
                if (lastPlayer != targetPlayer) {
                   SetMovingTowardsTargetPlayer(targetPlayer);
-                  // ChangeOwnershipOfEnemy(targetPlayer.actualClientId);
-                  // Plugin.Log.LogInfo($"[Update::{NetworkHandler.AiType}] SetMovingTowardsTargetPlayer, player {targetPlayer?.playerUsername}");
+                  LogInfo($"[Update::{NetworkHandler.AiType}] SetMovingTowardsTargetPlayer, player {targetPlayer?.playerUsername}");
                }
             }
 
@@ -479,21 +463,21 @@ public class RollingGiantAI : EnemyAI {
    //       if (!pathIsIntersectedByLineOfSight && (!requireLineOfSight || hasLineOfSightToPosition)) {
    //          tempDist = Vector3.Distance(transform.position, StartOfRound.Instance.allPlayerScripts[i].transform.position);
    //          if (tempDist < (double)mostOptimalDistance) {
-   //             // Plugin.Log.LogInfo($"[TargetClosestPlayer::{NetworkHandler.AiType}] [{i}] ({player?.playerUsername}) tempDist: {tempDist}, mostOptimalDistance: {mostOptimalDistance}");
+   //             // LogInfo($"[TargetClosestPlayer::{NetworkHandler.AiType}] [{i}] ({player?.playerUsername}) tempDist: {tempDist}, mostOptimalDistance: {mostOptimalDistance}");
    //             mostOptimalDistance = tempDist;
    //             this.targetPlayer = StartOfRound.Instance.allPlayerScripts[i];
    //          } else {
-   //             // Plugin.Log.LogInfo($"[TargetClosestPlayer::{NetworkHandler.AiType}] [{i}] ({player?.playerUsername}) tempDist: {tempDist}, mostOptimalDistance: {mostOptimalDistance}");
+   //             // LogInfo($"[TargetClosestPlayer::{NetworkHandler.AiType}] [{i}] ({player?.playerUsername}) tempDist: {tempDist}, mostOptimalDistance: {mostOptimalDistance}");
    //          }
    //       } else {
-   //          // Plugin.Log.LogInfo($"[TargetClosestPlayer::{NetworkHandler.AiType}] [{i}] ({player?.playerUsername}) pathIsIntersectedByLineOfSight: {pathIsIntersectedByLineOfSight}, hasLineOfSightToPosition: {hasLineOfSightToPosition}");
+   //          // LogInfo($"[TargetClosestPlayer::{NetworkHandler.AiType}] [{i}] ({player?.playerUsername}) pathIsIntersectedByLineOfSight: {pathIsIntersectedByLineOfSight}, hasLineOfSightToPosition: {hasLineOfSightToPosition}");
    //       }
    //    }
    //
    //    if (this.targetPlayer && this.targetPlayer != targetPlayer && bufferDistance > 0.0 && targetPlayer && Mathf.Abs(mostOptimalDistance - Vector3.Distance(transform.position, targetPlayer.transform.position)) < (double)bufferDistance) {
    //       this.targetPlayer = targetPlayer;
    //    } else if (this.targetPlayer != targetPlayer) {
-   //       // Plugin.Log.LogInfo($"[TargetClosestPlayer::{NetworkHandler.AiType}] this.targetPlayer: {this.targetPlayer?.playerUsername}, targetPlayer: {targetPlayer?.playerUsername}, mostOptimalDistance: {mostOptimalDistance}, bufferDistance: {bufferDistance}, distance: {(targetPlayer ? Vector3.Distance(transform.position, targetPlayer.transform.position) : -1)}");
+   //       // LogInfo($"[TargetClosestPlayer::{NetworkHandler.AiType}] this.targetPlayer: {this.targetPlayer?.playerUsername}, targetPlayer: {targetPlayer?.playerUsername}, mostOptimalDistance: {mostOptimalDistance}, bufferDistance: {bufferDistance}, distance: {(targetPlayer ? Vector3.Distance(transform.position, targetPlayer.transform.position) : -1)}");
    //    }
    //
    //    return this.targetPlayer;
@@ -544,7 +528,7 @@ public class RollingGiantAI : EnemyAI {
          // if not on the ground, accelerate to reach it
          if (IsOwner && !IsAgentOnNavMesh(agent.gameObject)) {
             MoveAccelerate();
-            // Plugin.Log.LogInfo($"[CalculateAgentSpeed::{NetworkHandler.AiType}] not on navmesh");
+            LogInfo($"[CalculateAgentSpeed::{NetworkHandler.AiType}] not on navmesh");
             return;
          }
 
@@ -562,12 +546,12 @@ public class RollingGiantAI : EnemyAI {
             case RollingGiantAiType.Coilhead:
                if (isLookedAt) {
                   MoveDecelerate();
-                  // Plugin.Log.LogInfo($"[CalculateAgentSpeed::{NetworkHandler.AiType}] {player?.playerUsername} is lookin at, {_lookTimer}sec");
+                  // LogInfo($"[CalculateAgentSpeed::{NetworkHandler.AiType}] {player?.playerUsername} is lookin at, {_lookTimer}sec");
                   return;
                }
 
                MoveAccelerate();
-               // Plugin.Log.LogInfo($"[CalculateAgentSpeed::{NetworkHandler.AiType}] not looking at, {_lookTimer}sec");
+               // LogInfo($"[CalculateAgentSpeed::{NetworkHandler.AiType}] not looking at, {_lookTimer}sec");
                break;
             case RollingGiantAiType.InverseCoilhead:
                if (!isLookedAt && _isAgro) {
@@ -588,6 +572,7 @@ public class RollingGiantAI : EnemyAI {
                      MoveDecelerate();
 
                      if (IsOwner) {
+                        LogInfo($"_waitTimer: {_waitTimer.Value}");
                         _waitTimer.Value -= Time.deltaTime;
                         if (_waitTimer.Value <= 0) {
                            GenerateMoveTime();
@@ -601,6 +586,7 @@ public class RollingGiantAI : EnemyAI {
 
                if (_moveTimer.Value > 0) {
                   if (IsOwner) {
+                     LogInfo($"_moveTimer: {_moveTimer.Value}");
                      _moveTimer.Value -= Time.deltaTime;
                      if (_moveTimer.Value <= 0) {
                         GenerateWaitTime();
@@ -614,17 +600,17 @@ public class RollingGiantAI : EnemyAI {
                      if (IsOwner) {
                         _agroTimer.Value += Time.deltaTime / _sharedAiSettings.lookTimeBeforeAgro;
                      }
-                     // Plugin.Log.LogInfo($"[Update::{NetworkHandler.AiType}] _lookTimer: {_agroTimer.Value}");
+                     LogInfo($"[Update::{NetworkHandler.AiType}] _agroTimer: {_agroTimer.Value}");
                      if (_agroTimer.Value >= 1f) {
                         _isAgro = true;
-                        // Plugin.Log.LogInfo($"[Update::{NetworkHandler.AiType}] got agro");
+                        LogInfo($"[Update::{NetworkHandler.AiType}] got agro");
                      }
 
                      MoveDecelerate();
                   } else {
                      if (IsOwner) {
                         _agroTimer.Value = Mathf.Lerp(_agroTimer.Value, 0, Time.deltaTime / (_sharedAiSettings.lookTimeBeforeAgro * 1.5f));
-                        // Plugin.Log.LogInfo($"[Update::{NetworkHandler.AiType}] _lookTimer: {_agroTimer.Value}");
+                        LogInfo($"[Update::{NetworkHandler.AiType}] _agroTimer: {_agroTimer.Value}");
                      }
 
                      MoveAccelerate();
@@ -639,7 +625,7 @@ public class RollingGiantAI : EnemyAI {
                   if (isLookedAt) {
                      _isAgro = true;
                      MoveDecelerate();
-                     // Plugin.Log.LogInfo($"[Update::{NetworkHandler.AiType}] got agro");
+                     LogInfo($"[Update::{NetworkHandler.AiType}] got agro");
                      return;
                   }
                }
@@ -650,7 +636,7 @@ public class RollingGiantAI : EnemyAI {
                if (!_isAgro) {
                   if (isLookedAt) {
                      _isAgro = true;
-                     // Plugin.Log.LogInfo($"[Update::{NetworkHandler.AiType}] got agro");
+                     LogInfo($"[Update::{NetworkHandler.AiType}] got agro");
                      if (IsOwner) {
                         _agroTimer.Value = Mathf.Lerp(_sharedAiSettings.waitTimeMin, _sharedAiSettings.waitTimeMax, NextDouble());
                      }
@@ -660,13 +646,13 @@ public class RollingGiantAI : EnemyAI {
                }
 
                if (_agroTimer.Value >= 0) {
-                  // Plugin.Log.LogInfo($"[Update::{NetworkHandler.AiType}] _agroTimer: {_agroTimer.Value}");
+                  LogInfo($"[Update::{NetworkHandler.AiType}] _agroTimer: {_agroTimer.Value}");
                   if (IsOwner) {
                      _agroTimer.Value -= Time.deltaTime;
                   }
 
                   if (_agroTimer.Value < 0) {
-                     // Plugin.Log.LogInfo($"[Update::{NetworkHandler.AiType}] chasing time");
+                     LogInfo($"[Update::{NetworkHandler.AiType}] chasing time");
                   }
                   MoveDecelerate();
                   return;
@@ -693,7 +679,6 @@ public class RollingGiantAI : EnemyAI {
       agent.acceleration = 200;
    }
 
-
    private bool AmIBeingLookedAt(out PlayerControllerB closestPlayer) {
       var players = StartOfRound.Instance.allPlayerScripts;
       var closestDistance = float.MaxValue;
@@ -704,23 +689,23 @@ public class RollingGiantAI : EnemyAI {
          if (player.isPlayerDead) continue;
          if (!player.IsSpawned) continue;
          // if (!PlayerIsTargetable(player, overrideInsideFactoryCheck: isOutside)) {
-         //    // Plugin.Log.LogInfo($"[AmIBeingLookedAt::{NetworkHandler.AiType}] !PlayerIsTargetable({player?.playerUsername})");
+         //    // LogInfo($"[AmIBeingLookedAt::{NetworkHandler.AiType}] !PlayerIsTargetable({player?.playerUsername})");
          //    continue;
          // }
          // transform.position + Vector3.up * 1.6f
          if (player.HasLineOfSightToPosition(transform.position + Vector3.up * 1.6f, 68f)) {
             var distance = Vector3.Distance(transform.position, player.transform.position);
-            // Plugin.Log.LogInfo($"[AmIBeingLookedAt::{NetworkHandler.AiType}] HasLineOfSightToPosition({player?.playerUsername}), distance: {distance}");
+            // LogInfo($"[AmIBeingLookedAt::{NetworkHandler.AiType}] HasLineOfSightToPosition({player?.playerUsername}), distance: {distance}");
             if (distance < closestDistance) {
                closestDistance = distance;
                closestPlayer = player;
             }
          } else {
-            // Plugin.Log.LogInfo($"[AmIBeingLookedAt::{NetworkHandler.AiType}] !HasLineOfSightToPosition({player?.playerUsername})");
+            // LogInfo($"[AmIBeingLookedAt::{NetworkHandler.AiType}] !HasLineOfSightToPosition({player?.playerUsername})");
          }
       }
 
-      // Plugin.Log.LogInfo($"[AmIBeingLookedAt::{NetworkHandler.AiType}] closestPlayer: {closestPlayer?.playerUsername}");
+      // LogInfo($"[AmIBeingLookedAt::{NetworkHandler.AiType}] closestPlayer: {closestPlayer?.playerUsername}");
       return closestPlayer;
    }
    
@@ -740,7 +725,7 @@ public class RollingGiantAI : EnemyAI {
    //       out var hit,
    //       StartOfRound.Instance.collidersRoomDefaultAndFoliage,
    //       QueryTriggerInteraction.Ignore);
-   //    Plugin.Log.LogInfo($"[HasLineOfSightToPosition::{NetworkHandler.AiType}] b0: {b0}, b1: {b1}, b2: {b2} ({hit.collider?.name})");
+   //    LogInfo($"[HasLineOfSightToPosition::{NetworkHandler.AiType}] b0: {b0}, b1: {b1}, b2: {b2} ({hit.collider?.name})");
    //    return b0 && b1 && b2;
    // }
 
@@ -763,7 +748,7 @@ public class RollingGiantAI : EnemyAI {
    [ServerRpc(RequireOwnership = false)]
    private void BeginChasingPlayer_ServerRpc(int playerId) {
       BeginChasingPlayer_ClientRpc(playerId);
-      // Plugin.Log.LogInfo($"[BeginChasingPlayer_ServerRpc::{_sharedAiSettings.aiType}] SwitchToBehaviourStateOnLocalClient(1)");
+      // LogInfo($"[BeginChasingPlayer_ServerRpc::{_sharedAiSettings.aiType}] SwitchToBehaviourStateOnLocalClient(1)");
    }
 
    [ClientRpc]
@@ -771,21 +756,20 @@ public class RollingGiantAI : EnemyAI {
       SwitchToBehaviourStateOnLocalClient(1);
       var player = StartOfRound.Instance.allPlayerScripts[playerId];
       SetMovingTowardsTargetPlayer(player);
-      // Plugin.Log.LogInfo($"[BeginChasingPlayer_ClientRpc::{_sharedAiSettings.aiType}] SwitchToBehaviourStateOnLocalClient(1)");
+      // LogInfo($"[BeginChasingPlayer_ClientRpc::{_sharedAiSettings.aiType}] SwitchToBehaviourStateOnLocalClient(1)");
    }
    
    [ServerRpc(RequireOwnership = false)]
    private void EndChasingPlayer_ServerRpc() {
       EndChasingPlayer_ClientRpc();
-      // Plugin.Log.LogInfo($"[EndChasingPlayer_ServerRpc::{_sharedAiSettings.aiType}] SwitchToBehaviourStateOnLocalClient(0)");
+      // LogInfo($"[EndChasingPlayer_ServerRpc::{_sharedAiSettings.aiType}] SwitchToBehaviourStateOnLocalClient(0)");
    }
    
    [ClientRpc]
    private void EndChasingPlayer_ClientRpc() {
-      moveTowardsDestination = false;
       movingTowardsTargetPlayer = false;
       SwitchToBehaviourStateOnLocalClient(0);
-      // Plugin.Log.LogInfo($"[EndChasingPlayer_ClientRpc::{_sharedAiSettings.aiType}] SwitchToBehaviourStateOnLocalClient(0)");
+      // LogInfo($"[EndChasingPlayer_ClientRpc::{_sharedAiSettings.aiType}] SwitchToBehaviourStateOnLocalClient(0)");
    }
    
    private void GenerateWaitTime() {
@@ -810,7 +794,7 @@ public class RollingGiantAI : EnemyAI {
       AssignAgentData(scale);
       agent.transform.localScale = Vector3.one * scale;
       AssignInitData_ClientRpc(scale);
-      // Plugin.Log.LogInfo($"[AssignInitData_ServerRpc::{_sharedAiSettings.aiType}] agent.transform.localScale: {agent.transform.localScale}");
+      // LogInfo($"[AssignInitData_ServerRpc::{_sharedAiSettings.aiType}] agent.transform.localScale: {agent.transform.localScale}");
    }
    
    private void AssignInitData_LocalClient() {
@@ -820,7 +804,7 @@ public class RollingGiantAI : EnemyAI {
       AssignAgentData(scale);
       agent.transform.localScale = Vector3.one * scale;
       AssignInitData_ServerRpc(scale);
-      // Plugin.Log.LogInfo($"[AssignInitData_LocalClient::{_sharedAiSettings.aiType}] agent.transform.localScale: {agent.transform.localScale}");
+      // LogInfo($"[AssignInitData_LocalClient::{_sharedAiSettings.aiType}] agent.transform.localScale: {agent.transform.localScale}");
    }
 
    [ClientRpc]
@@ -830,7 +814,7 @@ public class RollingGiantAI : EnemyAI {
       AssignAgentData(scale);
       agent.transform.localScale = Vector3.one * scale;
       
-      // Plugin.Log.LogInfo($"[AssignInitData_ClientRpc::{_sharedAiSettings.aiType}] agent.transform.localScale: {agent.transform.localScale}");
+      // LogInfo($"[AssignInitData_ClientRpc::{_sharedAiSettings.aiType}] agent.transform.localScale: {agent.transform.localScale}");
    }
 
    private void AssignAgentData(float scale) {
