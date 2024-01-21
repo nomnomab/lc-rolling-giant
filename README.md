@@ -142,6 +142,10 @@ xcopy /y /d &quot;$(TargetDir)$(TargetName).dll&quot; &quot;$(GameDir)\BepInEx\p
 
 ## Changelog
 
+## 2.4.3
+
+- Fixes outside ai!
+
 ## 2.4.2
 
 - Clients properly get targetted during the roaming phase
