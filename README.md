@@ -17,7 +17,7 @@ Features:
   - A hot key to reload the entire config file
   - Hotkeys to cycle between AI types
 
-![There should be the picture... Something went wrong.](./Images/promo.png)
+![There should be the picture... Something went wrong.](https://github.com/nomnomab/lc-rolling-giant/blob/b7ec500fe67ce588190dbb03c3a2a0baad42bfda/Images/promo.png?raw=true)
 
 ## Installation
 
@@ -141,6 +141,11 @@ xcopy /y /d &quot;$(TargetDir)$(TargetName).dll&quot; &quot;$(GameDir)\BepInEx\p
 ```
 
 ## Changelog
+
+## 2.4.4
+
+- Added`@Headcraps` to the acknowledgments for making the original Rolling Giant model
+  - I was given this by a friend so I wasn't aware that Headcraps initially made it, sorry about that!
 
 ## 2.4.3
 
@@ -295,6 +300,7 @@ xcopy /y /d &quot;$(TargetDir)$(TargetName).dll&quot; &quot;$(GameDir)\BepInEx\p
 
 - `Ayyobee` for a bunch of online testing and suggestions.
 - `Krampus` for the help with the new Rolling Giant model.
+- `@Headcraps` for the [original Rolling Giant model](https://rigmodels.com/model.php?view=The_Rolling_Giant_[Tov3_Accurate]_3d_model__50038756bcfa4e3082bee7211dbd22a0)!
 
 <br/>
 
