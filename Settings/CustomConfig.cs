@@ -408,7 +408,11 @@ public class CustomConfig : SyncedInstance<CustomConfig> {
                 waitTimeMin = Instance.OnceSeenAgroAfterTimer_WaitTimeMin,
                 waitTimeMax = Instance.OnceSeenAgroAfterTimer_WaitTimeMax
             },
-            _ => throw new ArgumentOutOfRangeException($"I don't support the \"{aiType}\" type?")
+            _ => GetSharedAiSettings() with {
+                // canWander = Instance.Coilhead_CanWander,
+                // chaseMaxDistance = Instance.Coilhead_ChaseMaxDistance
+            },
+            // _ => throw new ArgumentOutOfRangeException($"I don't support the \"{aiType}\" type?")
         };
 
         Plugin.Log.LogInfo($"[{aiType}]: {SharedAiSettings}");
