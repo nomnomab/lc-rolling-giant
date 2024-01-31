@@ -24,7 +24,7 @@ namespace RollingGiant;
 public class Plugin : BaseUnityPlugin {
     public const string PluginGuid = "nomnomab.rollinggiant";
     public const string PluginName = "Rolling Giant";
-    public const string PluginVersion = "2.4.4";
+    public const string PluginVersion = "2.5.0";
     
     private const int SaveFileVersion = 9;
 
@@ -207,7 +207,7 @@ public enum RollingGiantAiType {
     FollowOnceAgro = 16,
     [Description("Once the player sees the Rolling Giant, it will chase the player after a timer")]
     OnceSeenAgroAfterTimer = 32,
-    [Description("All AI types")]
+    [Description("Will put all AI types into the selection for you")]
     All = Coilhead | InverseCoilhead | RandomlyMoveWhileLooking | LookingTooLongKeepsAgro | FollowOnceAgro | OnceSeenAgroAfterTimer
 }
 

@@ -50,8 +50,11 @@ public class CustomConfig : SyncedInstance<CustomConfig> {
 
     public const string AiTypeDescription =
         "The AI type of the Rolling Giant.\n(Putting multiple will randomly choose between them each time you land on a moon)";
+    public const string AiTypeChangeOnHourIntervalDescription =
+        "If the AI type should change every X hours. This will affect already spawned Rolling Giants!\nIf set to 0 it will not change.\nWill pick from the values set in AiType.";
 
     public static RollingGiantAiType AiType { get; internal set; }
+    public static int AiTypeChangeOnHourInterval { get; private set; }
 
     public const string MoveSpeedDescription = "The speed of the Rolling Giant in m/s\u00b2.";
     public const string MoveAccelerationDescription = "How long it takes the Rolling Giant to get to its movement speed. in seconds";
@@ -134,6 +137,7 @@ public class CustomConfig : SyncedInstance<CustomConfig> {
         SpawnPosterInEntry.Value = SpawnPosterIn;
 
         AiTypeEntry.Value = AiType;
+        AiTypeChangeOnHourInterval = AiTypeChangeOnHourInterval;
         MoveSpeedEntry.Value = MoveSpeed;
         MoveAccelerationEntry.Value = MoveAcceleration;
         MoveDecelerationEntry.Value = MoveDeceleration;
@@ -221,6 +225,7 @@ public class CustomConfig : SyncedInstance<CustomConfig> {
             aiDescription += $"\n{value}: {description}";
         }
         AiTypeEntry = _config.Bind(Name2, nameof(AiType), RollingGiantAiType.RandomlyMoveWhileLooking, aiDescription);
+        AiTypeChangeOnHourInterval = _config.Bind(Name2, nameof(AiTypeChangeOnHourInterval), 0, AiTypeChangeOnHourIntervalDescription).Value;
         MoveSpeedEntry = _config.Bind(Name2, nameof(MoveSpeed), 6f, MoveSpeedDescription);
         MoveAccelerationEntry = _config.Bind(Name2, nameof(MoveAcceleration), 2f, MoveAccelerationDescription);
         MoveDecelerationEntry = _config.Bind(Name2, nameof(MoveDeceleration), 0.5f, MoveDecelerationDescription);
@@ -274,6 +279,7 @@ public class CustomConfig : SyncedInstance<CustomConfig> {
             SpawnPosterIn = SpawnPosterInEntry.Value;
 
             AiType = AiTypeEntry.Value;
+            AiTypeChangeOnHourInterval = AiTypeChangeOnHourInterval;
             MoveSpeed = MoveSpeedEntry.Value;
             MoveAcceleration = MoveAccelerationEntry.Value;
             MoveDeceleration = MoveDecelerationEntry.Value;

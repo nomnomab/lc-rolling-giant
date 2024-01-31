@@ -25,9 +25,38 @@ public class StartOfRoundPatches {
     [HarmonyPostfix]
     private static void RandomizeAiType() {
         if (NetworkManager.Singleton.IsHost || NetworkManager.Singleton.IsServer) {
-            // select a random ai type
+            // select a random ai type on start
             var aiType = CustomConfig.AiType.GetRandom();
             NetworkHandler.Instance.SetAiType(aiType);
+            
+            TimeOfDay.Instance.onTimeSync.RemoveListener(OnTimeSync);
+            TimeOfDay.Instance.onTimeSync.AddListener(OnTimeSync);
+        }
+    }
+    
+    private static int _lastHour = -1;
+    private static bool InLevel => StartOfRound.Instance && !StartOfRound.Instance.inShipPhase && StartOfRound.Instance.currentLevelID != 3;
+    
+    private static void OnTimeSync() {
+        if (!InLevel) {
+            TimeOfDay.Instance.onTimeSync.RemoveListener(OnTimeSync);
+            return;
+        }
+        
+        if (!(NetworkManager.Singleton.IsHost || NetworkManager.Singleton.IsServer)) {
+            return;
+        }
+        
+        var interval = CustomConfig.AiTypeChangeOnHourInterval;
+        if (interval == 0) {
+            return;
+        }
+
+        var time = TimeOfDay.Instance.hour;
+        var difference = time - _lastHour;
+        if (difference >= interval) {
+            _lastHour = time;
+            RandomizeAiType();
         }
     }
     
