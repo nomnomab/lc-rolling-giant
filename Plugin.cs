@@ -26,7 +26,7 @@ public class Plugin : BaseUnityPlugin {
     public const string PluginName = "Rolling Giant";
     public const string PluginVersion = "2.5.0";
     
-    private const int SaveFileVersion = 9;
+    private const int SaveFileVersion = 10;
 
     public static string PluginDirectory;
     public static CustomConfig CustomConfig { get; private set; }
