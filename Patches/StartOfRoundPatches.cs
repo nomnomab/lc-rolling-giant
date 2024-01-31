@@ -26,19 +26,26 @@ public class StartOfRoundPatches {
     private static void RandomizeAiType() {
         if (NetworkManager.Singleton.IsHost || NetworkManager.Singleton.IsServer) {
             // select a random ai type on start
-            var aiType = CustomConfig.AiType.GetRandom();
+            var aiType = CustomConfig.AiType.GetRandom(seedOffset: 0);
             NetworkHandler.Instance.SetAiType(aiType);
-            
-            TimeOfDay.Instance.onTimeSync.RemoveListener(OnTimeSync);
-            TimeOfDay.Instance.onTimeSync.AddListener(OnTimeSync);
+
+            if (TimeOfDay.Instance) {
+                TimeOfDay.Instance.onTimeSync.RemoveListener(OnTimeSync);
+                _lastHour = 0;
+                if (CustomConfig.AiTypeChangeOnHourInterval != 0) {
+                    Plugin.Log.LogMessage($"Setting up time sync for ai type change every {CustomConfig.AiTypeChangeOnHourInterval} hours");
+                    TimeOfDay.Instance.onTimeSync.AddListener(OnTimeSync);
+                }
+            }
         }
     }
     
-    private static int _lastHour = -1;
+    private static int _lastHour;
     private static bool InLevel => StartOfRound.Instance && !StartOfRound.Instance.inShipPhase && StartOfRound.Instance.currentLevelID != 3;
     
     private static void OnTimeSync() {
         if (!InLevel) {
+            _lastHour = 0;
             TimeOfDay.Instance.onTimeSync.RemoveListener(OnTimeSync);
             return;
         }
@@ -56,7 +63,9 @@ public class StartOfRoundPatches {
         var difference = time - _lastHour;
         if (difference >= interval) {
             _lastHour = time;
-            RandomizeAiType();
+            
+            var aiType = CustomConfig.AiType.GetRandom(seedOffset: time);
+            NetworkHandler.Instance.SetAiType(aiType);
         }
     }
     

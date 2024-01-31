@@ -330,7 +330,7 @@ public class RollingGiantAI : EnemyAI {
                   }
                   break;
                case RollingGiantAiType.InverseCoilhead:
-                  if (!AmIBeingLookedAt(out _) && _isAgro) {
+                  if (!AmIBeingLookedAt(out _) && _isAgro && CheckLineOfSightToAnyPlayer()) {
                      _wasStopped = true;
                      return;
                   }
@@ -555,8 +555,10 @@ public class RollingGiantAI : EnemyAI {
                break;
             case RollingGiantAiType.InverseCoilhead:
                if (!isLookedAt && _isAgro) {
-                  MoveDecelerate();
-                  return;
+                  if (CheckLineOfSightToAnyPlayer()) {
+                     MoveDecelerate();
+                     return;
+                  }
                }
 
                MoveAccelerate();
@@ -693,6 +695,7 @@ public class RollingGiantAI : EnemyAI {
          //    continue;
          // }
          // transform.position + Vector3.up * 1.6f
+         
          if (player.HasLineOfSightToPosition(transform.position + Vector3.up * 1.6f, 68f)) {
             var distance = Vector3.Distance(transform.position, player.transform.position);
             // LogInfo($"[AmIBeingLookedAt::{NetworkHandler.AiType}] HasLineOfSightToPosition({player?.playerUsername}), distance: {distance}");
@@ -707,6 +710,24 @@ public class RollingGiantAI : EnemyAI {
 
       // LogInfo($"[AmIBeingLookedAt::{NetworkHandler.AiType}] closestPlayer: {closestPlayer?.playerUsername}");
       return closestPlayer;
+   }
+
+   private bool CheckLineOfSightTo(PlayerControllerB player) {
+      return player && HasLineOfSightToPosition(player.gameplayCamera.transform.position, 68f);
+   }
+   
+   private bool CheckLineOfSightToAnyPlayer() {
+      var players = StartOfRound.Instance.allPlayerScripts;
+      foreach (var player in players) {
+         if (!player.IsSpawned) continue;
+         if (player.isPlayerDead) continue;
+         
+         if (CheckLineOfSightTo(player)) {
+            return true;
+         }
+      }
+
+      return false;
    }
    
    // public bool HasLineOfSightToPosition(

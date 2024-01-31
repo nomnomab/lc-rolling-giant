@@ -81,6 +81,7 @@ These do not update when reloading the config in-game!
     - `WaitTimeMin` - The minimum duration in seconds that the Rolling Giant waits before chasing the player
     - `WaitTimeMax` - The minimum duration in seconds that the Rolling Giant waits before chasing the player
   - All - Will select all of the ai types
+- `AiTypeChangeOnHourInterval` - If the AI type should change every X hours
 - `MoveSpeed` - Speed of the Rolling Giant's movement in m/s²
 - `MoveAcceleration` - How long it takes the Rolling Giant to get to its movement speed in seconds
 - `MoveDeceleration` - How long it takes the Rolling Giant to stop moving in seconds
@@ -141,6 +142,11 @@ xcopy /y /d &quot;$(TargetDir)$(TargetName).dll&quot; &quot;$(GameDir)\BepInEx\p
 ```
 
 ## Changelog
+
+## 2.5.0
+
+- Added `AiTypeChangeOnHourInterval` to the config so the ai type can change every X amount of hours
+- The `InverseCoilhead` ai type will now move towards a player if it can't see any of them, until it gets back into line of sight
 
 ## 2.4.4
 

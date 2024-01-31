@@ -225,7 +225,7 @@ public static class RollingGiantAiTypeExtensions {
         return aiType;
     }
     
-    public static RollingGiantAiType GetRandom(this RollingGiantAiType aiType) {
+    public static RollingGiantAiType GetRandom(this RollingGiantAiType aiType, int seedOffset) {
         using var _ = ListPool<RollingGiantAiType>.Get(out var types);
         var enumTypes = Enum.GetValues(typeof(RollingGiantAiType)).Cast<RollingGiantAiType>().ToArray();
         for (int i = 0; i < enumTypes.Length - 1; i++) {
@@ -236,7 +236,7 @@ public static class RollingGiantAiTypeExtensions {
         }
 
         var selectedAiType = aiType;
-        var rng = new System.Random(StartOfRound.Instance.randomMapSeed);
+        var rng = new System.Random(StartOfRound.Instance.randomMapSeed + seedOffset);
         var index = rng.Next(0, types.Count);
         // var index = Random.Range(0, types.Count);
         if (types.Count > 1) {
