@@ -235,18 +235,45 @@ public static class RollingGiantAiTypeExtensions {
             }
         }
 
+        if (types.Count == 1) {
+            return aiType;
+        }
+
         var selectedAiType = aiType;
+        if (NetworkHandler.Instance) {
+            selectedAiType = NetworkHandler.AiType;
+            types.Remove(selectedAiType);
+        }
+        
         var rng = new System.Random(StartOfRound.Instance.randomMapSeed + seedOffset);
         var index = rng.Next(0, types.Count);
         // var index = Random.Range(0, types.Count);
         if (types.Count > 1) {
             selectedAiType = types[index];
+            Plugin.Log.LogInfo($"Selected AI type: {selectedAiType}");
         } else if (types.Count == 0) {
             // none, so random
             // selectedAiType = enumTypes[Random.Range(0, enumTypes.Length - 1)];
             selectedAiType = enumTypes[rng.Next(0, enumTypes.Length - 1)];
+            Plugin.Log.LogInfo($"Selected AI type: {selectedAiType}");
+        } else {
+            selectedAiType = types[0];
+            Plugin.Log.LogInfo($"Selected initial AI type: {selectedAiType}");
         }
         
         return selectedAiType;
+    }
+    
+    public static int AiTypesCount(this RollingGiantAiType aiType) {
+        var count = 0;
+        var enumTypes = Enum.GetValues(typeof(RollingGiantAiType)).Cast<RollingGiantAiType>().ToArray();
+        for (int i = 0; i < enumTypes.Length - 1; i++) {
+            var type = enumTypes[i];
+            if ((aiType & type) == type) {
+                count++;
+            }
+        }
+        
+        return count;
     }
 }

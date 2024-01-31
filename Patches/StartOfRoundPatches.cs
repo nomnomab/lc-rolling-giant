@@ -32,8 +32,8 @@ public class StartOfRoundPatches {
             if (TimeOfDay.Instance) {
                 TimeOfDay.Instance.onTimeSync.RemoveListener(OnTimeSync);
                 _lastHour = 0;
-                if (CustomConfig.AiTypeChangeOnHourInterval != 0) {
-                    Plugin.Log.LogMessage($"Setting up time sync for ai type change every {CustomConfig.AiTypeChangeOnHourInterval} hours");
+                if (CustomConfig.AiTypeChangeOnHourInterval > 0 && CustomConfig.AiType.AiTypesCount() > 1) {
+                    Plugin.Log.LogInfo($"Setting up time sync for ai type change every {CustomConfig.AiTypeChangeOnHourInterval} hours");
                     TimeOfDay.Instance.onTimeSync.AddListener(OnTimeSync);
                 }
             }
@@ -66,6 +66,8 @@ public class StartOfRoundPatches {
             
             var aiType = CustomConfig.AiType.GetRandom(seedOffset: time);
             NetworkHandler.Instance.SetAiType(aiType);
+            Plugin.Log.LogInfo($"Changed ai type to {aiType} at hour {time}");
+            Plugin.Log.LogInfo($"Next ai type change at hour {time + interval}");
         }
     }
     
