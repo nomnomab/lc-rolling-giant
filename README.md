@@ -81,7 +81,7 @@ These do not update when reloading the config in-game!
     - `WaitTimeMin` - The minimum duration in seconds that the Rolling Giant waits before chasing the player
     - `WaitTimeMax` - The minimum duration in seconds that the Rolling Giant waits before chasing the player
   - All - Will select all of the ai types
-- `AiTypeChangeOnHourInterval` - If the AI type should change every X hours
+- `AiTypeChangeOnHourInterval` - If the AI type should change every X hours. Set to 0 to disable
 - `MoveSpeed` - Speed of the Rolling Giant's movement in m/s²
 - `MoveAcceleration` - How long it takes the Rolling Giant to get to its movement speed in seconds
 - `MoveDeceleration` - How long it takes the Rolling Giant to stop moving in seconds
