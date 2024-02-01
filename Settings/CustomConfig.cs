@@ -158,6 +158,7 @@ public class CustomConfig : SyncedInstance<CustomConfig> {
 
     public void Reload(bool setValues = true) {
         // general settings
+        // _config.Reload();
         GiantScaleInsideMinEntry = _config.Bind(Name1, nameof(GiantScaleInsideMin), 0.9f, "The min scale of the Rolling Giant inside.\nThis is a multiplier, so 0.5 is half as large.");
         GiantScaleInsideMaxEntry = _config.Bind(Name1, nameof(GiantScaleInsideMax), 1.1f, "The max scale of the Rolling Giant inside.\nThis is a multiplier, so 2 is twice as large.");
         GiantScaleOutsideMinEntry = _config.Bind(Name1, nameof(GiantScaleOutsideMin), 0.9f, "The min scale of the Rolling Giant outside.\nThis is a multiplier, so 0.5 is half as large.");
@@ -249,17 +250,17 @@ public class CustomConfig : SyncedInstance<CustomConfig> {
         // looking too long keeps agro ai settings
         LookingTooLongKeepsAgro_LookTimeBeforeAgroEntry = _config.Bind("AI.LookingTooLongKeepsAgro",
             "LookTimeBeforeAgro",
-            30f,
+            12f,
             "How long the player can look at the Rolling Giant before it starts chasing in seconds.");
         
         // once seen agro after timer ai settings
         OnceSeenAgroAfterTimer_WaitTimeMinEntry = _config.Bind("AI.OnceSeenAgroAfterTimer",
             "WaitTimeMin",
-            30f,
+            15f,
             "The minimum duration in seconds the Rolling Giant waits before chasing the player.");
         OnceSeenAgroAfterTimer_WaitTimeMaxEntry = _config.Bind("AI.OnceSeenAgroAfterTimer",
             "WaitTimeMax",
-            60f,
+            30f,
             "The minimum duration in seconds the Rolling Giant waits before chasing the player.");
 
         if (setValues) {
@@ -416,5 +417,19 @@ public class CustomConfig : SyncedInstance<CustomConfig> {
         };
 
         Plugin.Log.LogInfo($"[{aiType}]: {SharedAiSettings}");
+        
+        if (NetworkManager.Singleton.IsHost || NetworkManager.Singleton.IsServer) {
+            if (RoundManager.Instance) {
+                var allSpawnedGiants = RoundManager.Instance.SpawnedEnemies;
+                if (allSpawnedGiants == null) return;
+                
+                Plugin.Log.LogInfo("Resetting all rolling giants!");
+                foreach (var enemy in allSpawnedGiants) {
+                    if (enemy is RollingGiantAI rollingGiant) {
+                        rollingGiant.ResetValues();
+                    }
+                }
+            }
+        }
     }
 }

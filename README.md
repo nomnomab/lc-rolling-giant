@@ -143,6 +143,11 @@ xcopy /y /d &quot;$(TargetDir)$(TargetName).dll&quot; &quot;$(GameDir)\BepInEx\p
 
 ## Changelog
 
+## 2.5.1
+
+- Fixed timers that didn't reset when ai types changed hourly
+- Fixed some ai types slowing down dramatically due to timers not resetting
+
 ## 2.5.0
 
 - Added `AiTypeChangeOnHourInterval` to the config so the ai type can change every X amount of hours

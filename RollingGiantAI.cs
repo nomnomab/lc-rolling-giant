@@ -84,6 +84,25 @@ public class RollingGiantAI : EnemyAI {
       }
    }
 
+   public void ResetValues() {
+      if (IsHost || IsServer) {
+         _waitTimer.Value = 0;
+         _moveTimer.Value = 0;
+         _lookTimer.Value = 0;
+         _agroTimer.Value = 0;
+         SwitchToBehaviourState(0);
+         EndChasingPlayer_ClientRpc();
+         ResetValues_ClientRpc();
+      }
+   }
+
+   [ClientRpc]
+   private void ResetValues_ClientRpc() {
+      _isAgro = false;
+      _wasStopped = false;
+      _wasFeared = false;
+   }
+
    public override void DaytimeEnemyLeave() {
       base.DaytimeEnemyLeave();
       
@@ -129,7 +148,7 @@ public class RollingGiantAI : EnemyAI {
 
                var distance = Vector3.Distance(transform.position, player.transform.position);
                var inRange = distance < (isOutside ? 90 : 30);
-               if (Physics.Linecast(transform.position + Vector3.up * 0.5f, player.gameplayCamera.transform.position, StartOfRound.Instance.collidersAndRoomMaskAndDefault) && inRange) {
+               if (!Physics.Linecast(transform.position + Vector3.up * 0.5f, player.gameplayCamera.transform.position, StartOfRound.Instance.collidersAndRoomMaskAndDefault) && inRange) {
                   SwitchToBehaviourState(1);
                   LogInfo($"[DoAIInterval::{NetworkHandler.AiType}] SwitchToBehaviourState(1), found {player?.playerUsername} at distance {distance}m");
                   return;
@@ -138,12 +157,14 @@ public class RollingGiantAI : EnemyAI {
             
             if (isOutside) {
                var closest = GetClosestPlayer();
-               var distance = Vector3.Distance(transform.position, closest.transform.position);
-               var inRange = distance < (isOutside ? 90 : 30);
-               if (closest && Physics.Linecast(transform.position + Vector3.up * 0.5f, closest.gameplayCamera.transform.position, StartOfRound.Instance.collidersAndRoomMaskAndDefault) && inRange) {
-                  targetPlayer = closest;
-                  SwitchToBehaviourState(1);
-                  LogInfo($"[DoAIInterval::{NetworkHandler.AiType}] ClosestPlayer! SwitchToBehaviourState(1), found {targetPlayer?.playerUsername}");
+               if (closest && !Physics.Linecast(transform.position + Vector3.up * 0.5f, closest.gameplayCamera.transform.position, StartOfRound.Instance.collidersAndRoomMaskAndDefault)) {
+                  var distance = Vector3.Distance(transform.position, closest.transform.position);
+                  var inRange = distance < (isOutside ? 90 : 30);
+                  if (inRange) {
+                     targetPlayer = closest;
+                     SwitchToBehaviourState(1);
+                     LogInfo($"[DoAIInterval::{NetworkHandler.AiType}] ClosestPlayer! SwitchToBehaviourState(1), found {targetPlayer?.playerUsername}");
+                  }
                }
             }
             break;
@@ -193,7 +214,7 @@ public class RollingGiantAI : EnemyAI {
       _mainCollider.isTrigger = _velocity.Value > 0.01f;
       
       var speed = _velocity.Value;
-      LogInfo($"[Update::{NetworkHandler.AiType}] speed: {speed}/{_sharedAiSettings.moveSpeed}, moveTowardsDestination: {moveTowardsDestination}: movingTowardsTargetPlayer: {movingTowardsTargetPlayer}, onNavmesh: {agent.isOnNavMesh}, isActiveAndEnabled: {agent.isActiveAndEnabled}");
+      // LogInfo($"[Update::{NetworkHandler.AiType}] _wasStopped: {_wasStopped}, speed: {speed}/{_sharedAiSettings.moveSpeed}, moveTowardsDestination: {moveTowardsDestination}: movingTowardsTargetPlayer: {movingTowardsTargetPlayer}, onNavmesh: {agent.isOnNavMesh}, isActiveAndEnabled: {agent.isActiveAndEnabled}");
       // LogInfo($"[Update::{NetworkHandler.AiType}] speed: {speed}/{_sharedAiSettings.moveSpeed}, _rollingSFX.volume: {_rollingSFX.volume}");
       if (speed > 0.1f) {
          _rollingSFX.volume = Mathf.Lerp(0, Mathf.Clamp01(ROAMING_AUDIO_PERCENT * speed + 0.05f), speed / _sharedAiSettings.moveSpeed);
@@ -351,7 +372,7 @@ public class RollingGiantAI : EnemyAI {
                   // ?
                   break;
                case RollingGiantAiType.OnceSeenAgroAfterTimer:
-                  if (_isAgro && _agroTimer.Value <= 0) {
+                  if (_isAgro && _agroTimer.Value > 0) {
                      _wasStopped = true;
                      return;
                   }
@@ -643,17 +664,15 @@ public class RollingGiantAI : EnemyAI {
                         _agroTimer.Value = Mathf.Lerp(_sharedAiSettings.waitTimeMin, _sharedAiSettings.waitTimeMax, NextDouble());
                      }
                      MoveDecelerate();
+                     return;
                   }
-                  return;
-               }
-
-               if (_agroTimer.Value >= 0) {
+               } else if (_agroTimer.Value > 0) {
                   LogInfo($"[Update::{NetworkHandler.AiType}] _agroTimer: {_agroTimer.Value}");
                   if (IsOwner) {
                      _agroTimer.Value -= Time.deltaTime;
                   }
 
-                  if (_agroTimer.Value < 0) {
+                  if (_agroTimer.Value <= 0) {
                      LogInfo($"[Update::{NetworkHandler.AiType}] chasing time");
                   }
                   MoveDecelerate();
