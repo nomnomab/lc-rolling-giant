@@ -9,14 +9,22 @@ public static class EnemyPatches {
     [HarmonyPatch(typeof(StartOfRound), "Awake")]
     [HarmonyPostfix]
     private static void RegisterEnemy(StartOfRound __instance) {
-        var levels = __instance.levels;
-
+        // var levels = __instance.levels;
         if (!__instance.allItemsList.itemsList.Contains(Plugin.PosterItem)) {
             __instance.allItemsList.itemsList.Add(Plugin.PosterItem);
         }
         
-        HandleSpawnScrap(levels);
+        // HandleSpawnScrap(levels);
+    }
 
+    [HarmonyPatch(typeof(RoundManager), "Start")]
+    [HarmonyPriority(priority: Priority.Last)]
+    [HarmonyPostfix]
+    private static void RegisterEnemy2(RoundManager __instance) {
+        var levels = __instance.playersManager.levels;
+        
+        HandleSpawnScrap(levels);
+        
         var spawnInAny = CustomConfig.SpawnInAny;
         if (spawnInAny) {
             HandleSpawnInAny(levels);

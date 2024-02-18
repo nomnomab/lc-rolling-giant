@@ -196,6 +196,7 @@ public class RollingGiantAI : EnemyAI {
    public override void Update() {
       if (daytimeEnemyLeaving) {
          _mainCollider.isTrigger = true;
+         _rollingSFX.volume = 0;
          return;
       }
    

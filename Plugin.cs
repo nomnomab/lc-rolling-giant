@@ -24,7 +24,7 @@ namespace RollingGiant;
 public class Plugin : BaseUnityPlugin {
     public const string PluginGuid = "nomnomab.rollinggiant";
     public const string PluginName = "Rolling Giant";
-    public const string PluginVersion = "2.5.1";
+    public const string PluginVersion = "2.5.2";
     
     private const int SaveFileVersion = 11;
 
@@ -59,6 +59,7 @@ public class Plugin : BaseUnityPlugin {
         LoadNetWeaver();
         
         Harmony.CreateAndPatchAll(Assembly.GetExecutingAssembly());
+        
         Logger.LogInfo($"Plugin {PluginInfo.PLUGIN_GUID} is loaded!");
     }
 
