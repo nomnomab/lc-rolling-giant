@@ -143,6 +143,12 @@ xcopy /y /d &quot;$(TargetDir)$(TargetName).dll&quot; &quot;$(GameDir)\BepInEx\p
 
 ## Changelog
 
+## 2.5.2
+
+- Fixed LLL spawning
+- Fixed daytime variant's shader being missing (somehow)
+- Fixed daytime variant, when disabled, not disabling audio
+
 ## 2.5.1
 
 - Fixed timers that didn't reset when ai types changed hourly
